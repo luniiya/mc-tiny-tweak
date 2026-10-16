@@ -6,3 +6,4 @@
 - [Mod menu keybind](mod-menu-keybind.md) - Backslash key opens the mod's main menu.
 - [Infinity Item Editor port](infinity-item-editor-port.md) - First feature, remake of Ruukas97's abandoned item editor.
 - [Private workspace folders](private-workspace-folders.md) - inspiration/ clones and minecraft-1.21.11-source/ stay outside the repo.
+- [Prism settings source](prism-settings-source.md) - Real 1.21.11 instance path whose options.txt the dev client copies; differs on laptop.

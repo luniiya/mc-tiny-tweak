@@ -50,6 +50,33 @@ tasks.processResources {
     }
 }
 
+// Each machine can point this at its Prism instance's game folder in ~/.gradle/gradle.properties.
+val prismInstance = providers.gradleProperty("mctinytweak.prismInstance")
+
+val copyPrismOptions by tasks.registering {
+    group = "fabric"
+    description = "Copies options.txt from the configured Prism instance so the dev client uses your settings."
+    val source = prismInstance.map { File(it, "options.txt") }
+    val target = layout.projectDirectory.file("run/options.txt").asFile
+    outputs.upToDateWhen { false }
+    doLast {
+        val file = source.orNull
+        when {
+            file == null -> logger.lifecycle("mctinytweak.prismInstance is not set; keeping the dev client's own settings.")
+            !file.isFile -> logger.warn("No options.txt in Prism instance at ${file.parent}; keeping the dev client's own settings.")
+            else -> {
+                target.parentFile.mkdirs()
+                file.copyTo(target, overwrite = true)
+                logger.lifecycle("Copied settings from $file")
+            }
+        }
+    }
+}
+
+tasks.named("runClient") {
+    dependsOn(copyPrismOptions)
+}
+
 tasks.test {
     useJUnitPlatform()
     systemProperty("expected.minecraft.version", stonecutter.current.version)
