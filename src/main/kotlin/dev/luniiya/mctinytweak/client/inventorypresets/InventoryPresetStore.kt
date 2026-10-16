@@ -72,7 +72,13 @@ object InventoryPresetStore {
     }
 
     fun load(player: LocalPlayer, index: Int) {
-        val target = presets(player)[index] ?: return
+        give(player, presets(player)[index] ?: return)
+    }
+
+    /** The bundled kit, not whatever is saved in the bar's first slot now. */
+    fun starter(player: LocalPlayer): Map<String, ItemStack>? = InventoryPresets.decode(InventoryPresets.bundled(), player.registryAccess())[0]
+
+    fun give(player: LocalPlayer, target: Map<String, ItemStack>) {
         val commands = InventoryPresets.loadCommands(snapshot(player), target, player.registryAccess())
         hiddenFeedback += commands.size
         commands.forEach(player.connection::sendCommand)
@@ -81,7 +87,7 @@ object InventoryPresetStore {
     private fun raw(): CompoundTag {
         tag?.let { return it }
         val read = try {
-            if (Files.exists(file)) NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap()) else CompoundTag()
+            if (Files.exists(file)) NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap()) else InventoryPresets.bundled()
         } catch (e: Exception) {
             McTinyTweak.logger.warn("Could not read {}, starting with no inventory presets", file, e)
             CompoundTag()

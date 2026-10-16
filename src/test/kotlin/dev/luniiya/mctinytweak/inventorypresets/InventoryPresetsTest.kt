@@ -11,7 +11,9 @@ import net.minecraft.world.inventory.SlotRanges
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.enchantment.Enchantments
+import net.minecraft.world.level.GameType
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -79,5 +81,26 @@ class InventoryPresetsTest {
         val command = ItemCommand.replace("weapon.offhand", ItemStack.EMPTY, registries)
         val reader = StringReader(command.removePrefix("item replace entity @s weapon.offhand with "))
         assertEquals(Items.AIR, ItemParser(registries).parse(reader).item().value())
+    }
+
+    @Test
+    fun `the bundled starter kit is the saved elytra and mace loadout`() {
+        val kit = InventoryPresets.decode(InventoryPresets.bundled(), registries)[0]!!
+        assertTrue(kit["inventory.0"]!!.`is`(Items.ELYTRA))
+        val mace = kit["inventory.18"]!!
+        assertTrue(mace.`is`(Items.MACE))
+        val windBurst = registries.lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.WIND_BURST)
+        assertEquals(255, mace.enchantments.getLevel(windBurst))
+        assertTrue(kit["hotbar.1"]!!.`is`(Items.COPPER_PICKAXE))
+        // Giving it to an empty inventory sends one command per kit slot.
+        assertEquals(kit.size, InventoryPresets.loadCommands(emptyMap(), kit, registries).size)
+    }
+
+    @Test
+    fun `only survival worlds with commands get the starter kit`() {
+        assertTrue(InventoryPresets.getsStarterKit(GameType.SURVIVAL, allowCommands = true))
+        assertFalse(InventoryPresets.getsStarterKit(GameType.SURVIVAL, allowCommands = false))
+        assertFalse(InventoryPresets.getsStarterKit(GameType.CREATIVE, allowCommands = true))
+        assertFalse(InventoryPresets.getsStarterKit(GameType.ADVENTURE, allowCommands = true))
     }
 }

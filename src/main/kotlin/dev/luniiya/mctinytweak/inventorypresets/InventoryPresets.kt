@@ -4,8 +4,11 @@ import com.mojang.serialization.Codec
 import dev.luniiya.mctinytweak.itemeditor.ItemCommand
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.NbtAccounter
+import net.minecraft.nbt.NbtIo
 import net.minecraft.nbt.NbtOps
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.GameType
 
 /**
  * Whole-inventory loadouts kept in [SIZE] numbered slots, like a hotbar of kits.
@@ -42,6 +45,16 @@ class InventoryPresets(presets: List<Map<String, ItemStack>?> = emptyList()) {
     companion object {
         const val SIZE = 9
         const val FILE_NAME = "mc_tiny_tweak_inventory_presets.dat"
+
+        /** A presets file whose first preset is the starter kit. It also fills the bar before anything is saved. */
+        const val STARTER_RESOURCE = "/mc_tiny_tweak/starter-inventory.dat"
+
+        fun bundled(): CompoundTag =
+            InventoryPresets::class.java.getResourceAsStream(STARTER_RESOURCE)?.use { NbtIo.readCompressed(it, NbtAccounter.unlimitedHeap()) }
+                ?: CompoundTag()
+
+        /** The starter kit is for new survival worlds where you can use commands, never for creative or plain survival. */
+        fun getsStarterKit(gameType: GameType, allowCommands: Boolean): Boolean = gameType == GameType.SURVIVAL && allowCommands
 
         /** Every slot a preset covers, in `/item` slot names: hotbar, main inventory, armor, offhand. */
         val SLOT_NAMES: List<String> = (0..8).map { "hotbar.$it" } + (0..26).map { "inventory.$it" } +

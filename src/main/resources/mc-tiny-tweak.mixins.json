@@ -19,6 +19,7 @@
     "client.freelook.CameraMixin",
     "client.freelook.MouseHandlerMixin",
     "client.hotbar.GuiInvoker",
+    "client.inventorypresets.CreateWorldScreenMixin",
     "client.hotbar.GuiMixin",
     "client.keybinds.KeyBindsScreenAccessor",
     "client.keybinds.KeyBindsScreenMixin",
