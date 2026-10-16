@@ -29,5 +29,8 @@ class McpMixinsTest {
             assertTrue(lang.has(key), key)
             assertTrue(lang.has("$key.tooltip"), "$key.tooltip")
         }
+        for (notice in listOf("took_over", "released", "player_took_back", "action")) {
+            assertTrue(lang.has("notice.mc_tiny_tweak.mcp.$notice"), notice)
+        }
     }
 }

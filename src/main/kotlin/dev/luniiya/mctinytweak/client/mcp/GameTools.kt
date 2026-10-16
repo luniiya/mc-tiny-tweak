@@ -17,6 +17,12 @@ import dev.luniiya.mctinytweak.mcp.ToolResult
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.client.Screenshot
+import net.minecraft.client.gui.screens.ConnectScreen
+import net.minecraft.client.gui.screens.TitleScreen
+import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.multiplayer.ServerData
+import net.minecraft.client.multiplayer.ServerList
+import net.minecraft.client.multiplayer.resolver.ServerAddress
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.ItemStack
@@ -54,11 +60,11 @@ object GameTools {
                 ),
             ) { readChat(it.optInt("after_id", 0, 0..Int.MAX_VALUE).toLong(), it.optInt("limit", 50, 1..500)) },
             McpTool(
-                "send_chat", "Sends a chat message as the player. Use run_command for commands.", Feature.CHAT_SEND,
+                "send_chat", "Sends a chat message as the player. Needs take_over. Use run_command for commands.", Feature.CHAT_SEND,
                 Schema.obj(Schema.string("message", "The message, without a leading slash.", required = true)),
             ) { sendChat(it.requireString("message")) },
             McpTool(
-                "run_command", "Runs a command as the player, like typing it in chat, and returns the chat lines that arrive shortly after.", Feature.COMMANDS,
+                "run_command", "Runs a command as the player, like typing it in chat, and returns the chat lines that arrive shortly after. Works with or without take_over.", Feature.COMMANDS,
                 Schema.obj(
                     Schema.string("command", "The command, with or without the leading slash, for example `time set day`.", required = true),
                     Schema.integer("wait_ms", "How long to collect feedback (default 1000).", min = 0, max = 10_000),
@@ -91,13 +97,30 @@ object GameTools {
             ) { selectSlot(it.optInt("slot", 1, 1..9)) },
             McpTool("close_screen", "Closes the open screen or menu, such as the pause menu, an inventory or a chest.", Feature.INPUT) { closeScreen() },
             McpTool(
-                "baritone", "Runs a Baritone command (without #), for example `mine diamond_ore`, `goto 100 64 -200`, `follow player Name`, `stop`. Baritone's replies are returned from chat.", Feature.BARITONE,
+                "baritone", "Needs take_over. Runs a Baritone command (without #), for example `mine diamond_ore`, `goto 100 64 -200`, `follow player Name`, `stop`. Baritone's replies are returned from chat.", Feature.BARITONE,
                 Schema.obj(
                     Schema.string("command", "The Baritone command.", required = true),
                     Schema.integer("wait_ms", "How long to collect Baritone's replies (default 1000).", min = 0, max = 10_000),
                 ),
             ) { baritone(it.requireString("command"), it.optInt("wait_ms", 1000, 0..10_000)) },
             McpTool("baritone_status", "Whether Baritone is pathing, which process is in control (mining, following...) and its goal.", Feature.BARITONE) { baritoneStatus() },
+            McpTool(
+                "take_over", "Takes sole control of the player: the person's keyboard and mouse stop working in game until release_control, or until they take control back from the mod menu. Needed for send_chat, Baritone and joining or leaving worlds.", Feature.TAKE_OVER,
+            ) { onClient { AgentControl.takeOver() }; ToolResult.text("You are in control") },
+            McpTool("release_control", "Gives control back to the person and stops held keys and Baritone.", Feature.TAKE_OVER) {
+                onClient { AgentControl.release(byPlayer = false) }; ToolResult.text("The person is in control")
+            },
+            McpTool("list_servers", "The servers saved in the multiplayer list, with their addresses.", Feature.WORLDS) { listServers() },
+            McpTool(
+                "join_server", "Needs take_over and no world open. Connects to a server; check get_state a few seconds later.", Feature.WORLDS,
+                Schema.obj(Schema.string("address", "For example `localhost` or `play.example.net:25565`.", required = true)),
+            ) { joinServer(it.requireString("address")) },
+            McpTool("list_worlds", "The singleplayer worlds, newest played first, with the id open_world takes.", Feature.WORLDS) { listWorlds() },
+            McpTool(
+                "open_world", "Needs take_over and no world open. Opens a singleplayer world by its id from list_worlds.", Feature.WORLDS,
+                Schema.obj(Schema.string("id", "The world's folder id.", required = true)),
+            ) { openWorld(it.requireString("id")) },
+            McpTool("leave_world", "Needs take_over. Leaves the current world or server, like Disconnect or Save and Quit.", Feature.WORLDS) { leaveWorld() },
         )
     }
 
@@ -138,6 +161,7 @@ object GameTools {
                     })
                 }
             })
+            addProperty("control", if (AgentControl.agentInControl()) "agent" else "player")
             addProperty("agent_keys_held", AgentInput.heldCount)
             addProperty("baritone_installed", BaritoneBridge.installed)
         }
@@ -207,6 +231,7 @@ object GameTools {
         if (text.isEmpty()) throw ToolError("The message is empty")
         if (text.startsWith("/")) throw ToolError("Use run_command for commands")
         if (text.length > CHAT_LIMIT) throw ToolError("Chat messages are at most $CHAT_LIMIT characters")
+        requireTakeOver("send_chat")
         onClient { it.requirePlayer().connection.sendChat(text) }
         return ToolResult.text("Sent")
     }
@@ -221,6 +246,7 @@ object GameTools {
 
     private fun baritone(command: String, waitMillis: Int): ToolResult {
         if (!BaritoneBridge.installed) throw ToolError("Baritone is not installed in this game")
+        requireTakeOver("baritone")
         val text = command.trim().removePrefix("#")
         val before = Mcp.chat.lastId()
         val known = onClient { it.requirePlayer(); BaritoneBridge.execute(text) }
@@ -300,6 +326,60 @@ object GameTools {
             screen.title.string.ifEmpty { screen.javaClass.simpleName }
         }
         return ToolResult.text(if (closed == null) "No screen was open" else "Closed $closed")
+    }
+
+    private fun listServers(): ToolResult = onClient { minecraft ->
+        val servers = ServerList(minecraft).apply { load() }
+        if (servers.size() == 0) return@onClient ToolResult.text("No saved servers")
+        ToolResult.text((0 until servers.size()).joinToString("\n") { servers.get(it).let { s -> "${s.name}: ${s.ip}" } })
+    }
+
+    private fun joinServer(address: String): ToolResult {
+        val target = address.trim()
+        if (!ServerAddress.isValidAddress(target)) throw ToolError("Not a server address: $target")
+        requireTakeOver("join_server")
+        onClient { minecraft ->
+            if (minecraft.level != null) throw ToolError("Leave the current world first with leave_world")
+            val name = ServerList(minecraft).apply { load() }.let { list -> (0 until list.size()).map(list::get).firstOrNull { it.ip == target }?.name } ?: target
+            ConnectScreen.startConnecting(TitleScreen(), minecraft, ServerAddress.parseString(target), ServerData(name, target, ServerData.Type.OTHER), false, null)
+        }
+        return ToolResult.text("Connecting to $target. Check get_state in a few seconds.")
+    }
+
+    private fun listWorlds(): ToolResult {
+        val source = Minecraft.getInstance().levelSource
+        val worlds = try {
+            source.loadLevelSummaries(source.findLevelCandidates()).get(10, TimeUnit.SECONDS)
+        } catch (e: Exception) {
+            throw ToolError("Could not read the worlds: ${e.message}")
+        }
+        if (worlds.isEmpty()) return ToolResult.text("No singleplayer worlds")
+        return ToolResult.text(worlds.sortedByDescending { it.lastPlayed }.joinToString("\n") {
+            "${it.levelId}: ${it.levelName}" + if (it.isLocked) " (open elsewhere)" else ""
+        })
+    }
+
+    private fun openWorld(id: String): ToolResult {
+        requireTakeOver("open_world")
+        onClient { minecraft ->
+            if (minecraft.level != null) throw ToolError("Leave the current world first with leave_world")
+            if (!minecraft.levelSource.levelExists(id)) throw ToolError("No world with the id $id. See list_worlds.")
+            minecraft.createWorldOpenFlows().openWorld(id) { minecraft.setScreen(TitleScreen()) }
+        }
+        return ToolResult.text("Opening $id. Check get_state in a few seconds.")
+    }
+
+    private fun leaveWorld(): ToolResult {
+        requireTakeOver("leave_world")
+        onClient { minecraft ->
+            if (minecraft.level == null) throw ToolError("Not in a world")
+            minecraft.disconnectFromWorld(ClientLevel.DEFAULT_QUIT_MESSAGE)
+        }
+        return ToolResult.text("Left the world")
+    }
+
+    private fun requireTakeOver(tool: String) {
+        if (!AgentControl.agentInControl()) throw ToolError("$tool needs take_over first, so the person is not playing at the same time")
     }
 
     private fun mapping(minecraft: Minecraft, key: String): KeyMapping {

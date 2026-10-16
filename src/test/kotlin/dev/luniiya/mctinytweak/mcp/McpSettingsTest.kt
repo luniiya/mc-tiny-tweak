@@ -11,12 +11,13 @@ class McpSettingsTest {
             assertTrue(settings.enabled)
             assertEquals(McpSettings.DEFAULT_PORT, settings.port)
             assertTrue(Feature.entries.all(settings::allows))
+            assertTrue(settings.showActions)
         }
     }
 
     @Test
     fun `settings survive saving and loading`() {
-        val custom = McpSettings(enabled = false, port = 30000, features = setOf(Feature.STATE, Feature.CHAT_READ))
+        val custom = McpSettings(enabled = false, port = 30000, features = setOf(Feature.STATE, Feature.CHAT_READ), showActions = false)
         assertEquals(custom, McpSettings.parse(custom.serialize()))
     }
 

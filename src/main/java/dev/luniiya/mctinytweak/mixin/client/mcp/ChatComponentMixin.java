@@ -1,5 +1,6 @@
 package dev.luniiya.mctinytweak.mixin.client.mcp;
 
+import dev.luniiya.mctinytweak.client.Notices;
 import dev.luniiya.mctinytweak.client.mcp.Mcp;
 import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.gui.components.ChatComponent;
@@ -11,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Copies every line shown in chat, including command feedback, into the agent's chat log. */
+/** Copies every line shown in chat, including command feedback, into the agent's chat log. The mod's own notices are left out. */
 @Mixin(ChatComponent.class)
 abstract class ChatComponentMixin {
 	@Inject(
@@ -19,6 +20,6 @@ abstract class ChatComponentMixin {
 		at = @At("HEAD")
 	)
 	private void mc_tiny_tweak$logForAgent(Component message, @Nullable MessageSignature signature, @Nullable GuiMessageTag tag, CallbackInfo ci) {
-		Mcp.getChat().add(message.getString(), System.currentTimeMillis());
+		if (!Notices.getShowing()) Mcp.getChat().add(message.getString(), System.currentTimeMillis());
 	}
 }

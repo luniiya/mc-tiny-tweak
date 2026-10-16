@@ -17,6 +17,8 @@
     "client.mcp.ChatComponentMixin",
     "client.mcp.GameRendererMixin",
     "client.mcp.KeyMappingAccessor",
+    "client.mcp.KeyMappingControlMixin",
+    "client.mcp.MouseHandlerControlMixin",
     "client.visuals.BannerRendererMixin",
     "client.visuals.ScreenEffectRendererMixin",
     "client.visuals.ShieldSpecialRendererMixin"

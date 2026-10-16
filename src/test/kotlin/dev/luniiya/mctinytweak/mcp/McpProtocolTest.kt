@@ -16,7 +16,8 @@ class McpProtocolTest {
         McpTool("refuse", "Refuses", Feature.STATE) { throw ToolError("not now") },
     )
     private val errors = mutableListOf<String>()
-    private val protocol = McpProtocol("test", "1", { tools }, { it in allowed }, { name, _ -> errors += name })
+    private val calls = mutableListOf<String>()
+    private val protocol = McpProtocol("test", "1", { tools }, { it in allowed }, { name, _ -> errors += name }, { tool, args -> calls += "${tool.name} $args" })
 
     private fun call(method: String, params: String = "{}", id: Int = 1): JsonObject =
         JsonParser.parseString(protocol.handle("""{"jsonrpc":"2.0","id":$id,"method":"$method","params":$params}""")!!).asJsonObject
@@ -79,5 +80,14 @@ class McpProtocolTest {
         assertEquals("image", item["type"].asString)
         assertEquals("AAAA", item["data"].asString)
         assertEquals("image/png", item["mimeType"].asString)
+    }
+
+    @Test
+    fun `every allowed call is announced before it runs, refused ones are not`() {
+        call("tools/call", """{"name":"echo","arguments":{"text":"hi"}}""")
+        call("tools/call", """{"name":"fail"}""")
+        allowed = emptySet()
+        call("tools/call", """{"name":"echo","arguments":{"text":"no"}}""")
+        assertEquals(listOf("""echo {"text":"hi"}""", "fail {}"), calls)
     }
 }

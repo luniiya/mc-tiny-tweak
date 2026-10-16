@@ -1,10 +1,14 @@
 package dev.luniiya.mctinytweak.client.mcp
 
 import dev.luniiya.mctinytweak.McTinyTweak
+import dev.luniiya.mctinytweak.client.Notices
 import dev.luniiya.mctinytweak.mcp.ChatLog
 import dev.luniiya.mctinytweak.mcp.McpHttpServer
 import dev.luniiya.mctinytweak.mcp.McpProtocol
 import dev.luniiya.mctinytweak.mcp.McpSettings
+import dev.luniiya.mctinytweak.mcp.ToolCallSummary
+import net.minecraft.client.Minecraft
+import net.minecraft.network.chat.Component
 import net.fabricmc.loader.api.FabricLoader
 import java.nio.file.Files
 import java.nio.file.Path
@@ -53,6 +57,9 @@ object Mcp {
         val before = settings
         settings = change(settings)
         save()
+        if (!settings.enabled || !settings.allows(McpSettings.Feature.TAKE_OVER)) {
+            Minecraft.getInstance().execute { AgentControl.release(byPlayer = true) }
+        }
         if (before.enabled != settings.enabled || before.port != settings.port) {
             stop()
             applyRunning()
@@ -83,6 +90,9 @@ object Mcp {
             tools = GameTools::all,
             allowed = { settings.allows(it) },
             onError = { tool, e -> McTinyTweak.logger.warn("MCP tool {} failed", tool, e) },
+            onCall = { tool, arguments ->
+                if (settings.showActions) Notices.show(Component.translatable("notice.mc_tiny_tweak.mcp.action", ToolCallSummary.describe(tool.name, arguments)))
+            },
         )
         val created = McpHttpServer(token, protocol::handle)
         try {

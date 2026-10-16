@@ -15,6 +15,8 @@ class McpProtocol(
     private val tools: () -> List<McpTool>,
     private val allowed: (McpSettings.Feature) -> Boolean,
     private val onError: (String, Throwable) -> Unit = { _, _ -> },
+    /** Called before an allowed tool runs, with its arguments. */
+    private val onCall: (McpTool, JsonObject) -> Unit = { _, _ -> },
 ) {
     /** Answers one request. Returns null for notifications, which get no reply. */
     fun handle(body: String): String? {
@@ -69,6 +71,7 @@ class McpProtocol(
         if (!allowed(tool.feature)) return result(id, ToolResult.error("$name is turned off in the game's MCP settings").toJson())
         val arguments = params.get("arguments")?.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
         val outcome = try {
+            onCall(tool, arguments)
             tool.call(arguments)
         } catch (e: ToolError) {
             ToolResult.error(e.message ?: "Failed")
@@ -103,6 +106,7 @@ class McpProtocol(
 
         const val INSTRUCTIONS = "Controls a running Minecraft client as its player. Start with get_state, and take a screenshot " +
             "to see the game. Commands and their feedback go through run_command; read_chat shows what others say. " +
-            "Movement uses hold_keys for a number of ticks (20 ticks is one second)."
+            "Movement uses hold_keys for a number of ticks (20 ticks is one second). take_over gives you sole control " +
+            "and is required for send_chat, Baritone and joining or leaving worlds; release_control hands it back."
     }
 }

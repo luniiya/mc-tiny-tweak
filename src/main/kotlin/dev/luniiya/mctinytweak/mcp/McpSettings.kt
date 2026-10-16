@@ -9,6 +9,8 @@ data class McpSettings(
     /** The first port tried. When it is taken, for example by a second game, the next free one is used. */
     val port: Int = DEFAULT_PORT,
     val features: Set<Feature> = Feature.entries.toSet(),
+    /** Echo every tool call in chat as a mod notice, so the player can follow along. */
+    val showActions: Boolean = true,
 ) {
     /** What the agent may do. Each tool belongs to one feature and disappears when it is off. */
     enum class Feature(val key: String) {
@@ -19,6 +21,8 @@ data class McpSettings(
         COMMANDS("commands"),
         INPUT("input"),
         BARITONE("baritone"),
+        TAKE_OVER("takeOver"),
+        WORLDS("worlds"),
     }
 
     fun allows(feature: Feature) = feature in features
@@ -28,6 +32,7 @@ data class McpSettings(
     fun serialize() = buildString {
         append("$ENABLED=$enabled\n")
         append("$PORT=$port\n")
+        append("$SHOW_ACTIONS=$showActions\n")
         for (feature in Feature.entries) append("$FEATURE_PREFIX${feature.key}=${feature in features}\n")
     }
 
@@ -36,6 +41,7 @@ data class McpSettings(
         const val DEFAULT_PORT = 25599
         private const val ENABLED = "enabled"
         private const val PORT = "port"
+        private const val SHOW_ACTIONS = "showActions"
         private const val FEATURE_PREFIX = "feature."
 
         fun parse(text: String): McpSettings {
@@ -50,6 +56,7 @@ data class McpSettings(
                 features = Feature.entries.filter {
                     values[FEATURE_PREFIX + it.key]?.toBooleanStrictOrNull() ?: defaults.allows(it)
                 }.toSet(),
+                showActions = values[SHOW_ACTIONS]?.toBooleanStrictOrNull() ?: defaults.showActions,
             )
         }
     }

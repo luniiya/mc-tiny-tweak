@@ -14,6 +14,11 @@ object BaritoneBridge {
     fun execute(command: String): Boolean =
         BaritoneAPI.getProvider().primaryBaritone.commandManager.execute(command)
 
+    /** Cancels pathing and every process. Client thread only. */
+    fun stop() {
+        BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
+    }
+
     /** What Baritone is doing right now. Client thread only. */
     fun status(): String {
         val baritone = BaritoneAPI.getProvider().primaryBaritone
