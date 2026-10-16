@@ -111,4 +111,4 @@ The burning overlay sits lower (`FireOverlay.EXTRA_DROP`) and shields held in fi
 
 The mod menu has a Tweaks screen. Its settings are saved in `config/mc_tiny_tweak.properties` (`TweakSettings`). Show armor is off by default: players render without armor, and a four segment bar above their name shows one segment per worn piece in the material's color (`ArmorBar`).
 
-To test with two players, run `./gradlew :1.21.11:runServer` (offline mode, in `run-server/`), then `runClient`, and join `localhost`. Run `runClient2` as well: it starts as Tester2 in `run-client2/` and joins localhost by itself. Running the server means agreeing to the Minecraft EULA in `run-server/eula.txt`.
+To test with two players, run `./gradlew :1.21.11:runServer` (offline mode, in `run-server/`), then `runClient --args="--quickPlayMultiplayer localhost"` so it joins by itself (plain `runClient` stays on the title screen). Run `runClient2` as well: it starts as Tester2 in `run-client2/` and joins localhost by itself. Running the server means agreeing to the Minecraft EULA in `run-server/eula.txt`.
