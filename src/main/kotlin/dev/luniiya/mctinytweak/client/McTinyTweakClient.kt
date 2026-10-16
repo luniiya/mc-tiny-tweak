@@ -2,6 +2,7 @@ package dev.luniiya.mctinytweak.client
 
 import com.mojang.blaze3d.platform.InputConstants
 import dev.luniiya.mctinytweak.McTinyTweak
+import dev.luniiya.mctinytweak.client.freelook.Freelook
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
@@ -20,9 +21,14 @@ object McTinyTweakClient : ClientModInitializer {
         category,
     )
 
+    /** Hold to look around without turning. Defaults to left control. */
+    val freelookKey: KeyMapping = Freelook.keyMapping(category)
+
     override fun onInitializeClient() {
         KeyBindingHelper.registerKeyBinding(openMenuKey)
+        KeyBindingHelper.registerKeyBinding(freelookKey)
         ClientTickEvents.END_CLIENT_TICK.register { client ->
+            Freelook.tick(client, freelookKey)
             while (openMenuKey.consumeClick()) {
                 if (client.screen == null) client.setScreen(ModMenuScreen(null))
             }

@@ -70,6 +70,7 @@ class ModLoadingTest {
     fun `English translations cover the menu keybind`() {
         val lang = resource("assets/${McTinyTweak.MOD_ID}/lang/en_us.json")
         assertTrue(lang.has("key.${McTinyTweak.MOD_ID}.open_menu"))
+        assertTrue(lang.has("key.${McTinyTweak.MOD_ID}.freelook"))
         assertTrue(lang.has("key.category.${McTinyTweak.MOD_ID}.main"))
     }
 }

@@ -107,7 +107,7 @@ key_key.back:key.keyboard.s
 key_key.right:key.keyboard.d
 key_key.jump:key.keyboard.space
 key_key.sneak:key.keyboard.left.shift
-key_key.sprint:key.keyboard.left.control
+key_key.sprint:key.keyboard.z
 key_key.drop:key.keyboard.f24
 key_key.inventory:key.keyboard.tab
 key_key.chat:key.keyboard.enter
@@ -254,3 +254,4 @@ modelPart_left_pants_leg:true
 modelPart_right_pants_leg:true
 modelPart_hat:true
 key_key.mc_tiny_tweak.open_menu:key.keyboard.backslash
+key_key.mc_tiny_tweak.freelook:key.keyboard.left.control

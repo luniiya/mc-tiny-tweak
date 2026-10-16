@@ -98,3 +98,7 @@ that must not be published outside this repository.
 ## Key Binds screen
 
 The Controls > Key Binds screen gets a key search (click it, then press a key or mouse button; Escape clears), a name or category search, a Tablet/Mouse toggle for attack and use, "Unbind extras" (unbinds every bind not listed in `default-options.txt`), and "View defaults" (a read-only list of the bundled binds). `KeyBindsScreen` inherits `addTitle`, so `KeyBindsScreenMixin` overrides it rather than injecting into it.
+
+## Freelook
+
+Hold the freelook key (left control by default; sprint is moved to Z in the personal defaults) to look around while the player keeps facing and moving the same way. First person switches to the back view while held and returns on release. `FreelookCamera` holds the tested logic. `MouseHandlerMixin` sends mouse movement to it instead of the player, and `CameraMixin` points the camera along it. Written from scratch with Celibistrial's AGPL Freelook mod as a behavior reference only.

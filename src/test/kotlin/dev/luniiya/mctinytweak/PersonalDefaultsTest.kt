@@ -50,6 +50,14 @@ class PersonalDefaultsTest {
     }
 
     @Test
+    fun `sprint moves to Z so left control is free for freelook`() {
+        assertEquals("key.keyboard.z", PersonalDefaults.keybinds["key.sprint"])
+        assertEquals("key.keyboard.left.control", PersonalDefaults.keybinds["key.mc_tiny_tweak.freelook"])
+        val sprint = KeyMapping("key.sprint", InputConstants.KEY_LCONTROL, KeyMapping.Category.MOVEMENT)
+        assertEquals(InputConstants.getKey("key.keyboard.z"), sprint.defaultKey)
+    }
+
+    @Test
     fun `key mappings take their default from the personal defaults`() {
         val listed = KeyMapping("key.attack", InputConstants.Type.MOUSE, 0, KeyMapping.Category.MISC)
         assertEquals(InputConstants.getKey("key.keyboard.q"), listed.defaultKey)

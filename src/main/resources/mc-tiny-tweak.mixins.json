@@ -5,6 +5,8 @@
   "mixins": [],
   "client": [
     "client.KeyMappingMixin",
+    "client.freelook.CameraMixin",
+    "client.freelook.MouseHandlerMixin",
     "client.keybinds.KeyBindsScreenAccessor",
     "client.keybinds.KeyBindsScreenMixin",
     "client.keybinds.KeyEntryAccessor"
