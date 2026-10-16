@@ -1,5 +1,6 @@
 package dev.luniiya.mctinytweak.client.hotbar
 
+import dev.luniiya.mctinytweak.hotbar.HotbarHints
 import dev.luniiya.mctinytweak.hotbar.HotbarLayout
 import dev.luniiya.mctinytweak.mixin.client.hotbar.GuiInvoker
 import net.minecraft.client.AttackIndicatorStatus
@@ -11,11 +12,11 @@ import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.HumanoidArm
 
-/** Draws the hotbar in two groups, with the first four slots tinted and set apart. Replaces vanilla's hotbar. */
+/**
+ * Draws the hotbar in two groups, with the first four slots set apart and a shadow of their purpose in each
+ * empty one. Replaces vanilla's hotbar.
+ */
 object SplitHotbar {
-    /** Multiplies the first group's sprite; a warm gold that keeps the vanilla texture readable. */
-    const val FIRST_GROUP_TINT = 0xFFFFD98A.toInt()
-
     private val HOTBAR = Identifier.withDefaultNamespace("hud/hotbar")
     private val SELECTION = Identifier.withDefaultNamespace("hud/hotbar_selection")
     private val OFFHAND_LEFT = Identifier.withDefaultNamespace("hud/hotbar_offhand_left")
@@ -36,8 +37,8 @@ object SplitHotbar {
 
         // First group: left border and slots 1-4, then the sprite's right border column to close it.
         val firstSlots = HotbarLayout.FIRST_GROUP_U_END
-        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, w, h, 0, 0, left, top, firstSlots, h, FIRST_GROUP_TINT)
-        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, w, h, w - 1, 0, left + firstSlots, top, 1, h, FIRST_GROUP_TINT)
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, w, h, 0, 0, left, top, firstSlots, h)
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, w, h, w - 1, 0, left + firstSlots, top, 1, h)
         // Second group: the sprite's left border column, then slots 5-9 with the real right border.
         val second = HotbarLayout.secondPieceX(center)
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, w, h, 0, 0, second, top, 1, h)
@@ -54,6 +55,9 @@ object SplitHotbar {
         }
 
         val itemY = graphics.guiHeight() - 16 - 3
+        for (slot in 0 until HotbarLayout.GROUP_SIZE) {
+            if (player.inventory.getItem(slot).isEmpty) drawHint(graphics, slot, HotbarLayout.itemX(slot, center), itemY)
+        }
         var seed = 1
         for (slot in 0 until HotbarLayout.SLOTS) {
             invoker.`mc_tiny_tweak$renderSlot`(graphics, HotbarLayout.itemX(slot, center), itemY, deltaTracker, player, player.inventory.getItem(slot), seed++)
@@ -73,6 +77,16 @@ object SplitHotbar {
                 graphics.blitSprite(RenderPipelines.GUI_TEXTURED, ATTACK_BACKGROUND, x, y, 18, 18)
                 graphics.blitSprite(RenderPipelines.GUI_TEXTURED, ATTACK_PROGRESS, 18, 18, 0, 18 - filled, x, y + 18 - filled, 18, filled)
             }
+        }
+    }
+
+    private fun drawHint(graphics: GuiGraphics, slot: Int, x: Int, y: Int) {
+        val hint = HotbarHints.forSlot(slot) ?: return
+        val texture = hint.texture
+        if (texture == null) {
+            for (run in HotbarHints.cubeRuns(x, y)) graphics.fill(run.x0, run.y, run.x1, run.y + 1, run.argb)
+        } else {
+            graphics.blit(RenderPipelines.GUI_TEXTURED, Identifier.withDefaultNamespace(texture), x, y, 0f, 0f, 16, 16, 16, 16, HotbarHints.SHADOW_COLOR)
         }
     }
 }

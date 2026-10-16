@@ -115,4 +115,4 @@ To test with two players, run `./gradlew :1.21.11:runServer` (offline mode, in `
 
 ## Hotbar
 
-The hotbar is split in two: slots 1-4 (X C V B in the personal binds) are tinted gold (`SplitHotbar.FIRST_GROUP_TINT`) and separated from slots 5-9 by a gap (`HotbarLayout.GAP`). `GuiMixin` replaces `Gui.renderItemHotbar`, which is rebuilt from the vanilla sprites, so resource packs still apply.
+The hotbar is split in two: slots 1-4 (X C V B in the personal binds) are separated from slots 5-9 by a gap (`HotbarLayout.GAP`). `GuiMixin` replaces `Gui.renderItemHotbar`, which is rebuilt from the vanilla sprites, so resource packs still apply. When one of those slots is empty it shows a faint shadow of its purpose (`HotbarHints`): an axe, a pickaxe, a water bucket, then a block. The first three are vanilla item textures multiplied by a translucent black, and the block is a 16x16 cube drawn from a mask.
