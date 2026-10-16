@@ -21,10 +21,27 @@ class ArmorBarShapeTest {
     }
 
     @Test
-    fun `rectangles cover the whole bar exactly once`() {
-        val covered = cells(ArmorBarShape.rects(listOf(0x4AEDD9, 0xE6E6E6, ArmorBar.EMPTY_COLOR, ArmorBar.EMPTY_COLOR), top))
+    fun `rectangles cover the bar exactly once except the four rounded corners`() {
+        val rects = ArmorBarShape.rects(listOf(0x4AEDD9, 0xE6E6E6, ArmorBar.EMPTY_COLOR, ArmorBar.EMPTY_COLOR), top)
+        val covered = cells(rects)
         assertEquals(covered.size, covered.toSet().size, "overlapping rectangles would flicker")
-        assertEquals(ArmorBarShape.WIDTH * ArmorBarShape.HEIGHT, covered.size)
+        assertEquals(ArmorBarShape.WIDTH * ArmorBarShape.HEIGHT - 4, covered.size)
+        val left = rects.minOf { it.x0 }
+        val right = rects.maxOf { it.x1 } - 1
+        val bottom = top + ArmorBarShape.HEIGHT - 1
+        for (corner in listOf(left to top, right to top, left to bottom, right to bottom)) {
+            assertFalse(corner in covered, "corner $corner should be empty")
+        }
+    }
+
+    @Test
+    fun `the track is continuous with no notches between pieces`() {
+        val rects = ArmorBarShape.rects(listOf(0x4AEDD9, 0xE6E6E6, 0xFAD64A, 0x5E5458), top)
+        val inner = rects.filter { it.y0 == top + 2 }
+        assertTrue(inner.none { it.argb == ArmorBarShape.OUTLINE && it.x1 - it.x0 == 1 && it.x0 > rects.minOf { r -> r.x0 } && it.x1 < rects.maxOf { r -> r.x1 } })
+        val middleRow = inner.filter { it.argb != ArmorBarShape.OUTLINE }.sortedBy { it.x0 }
+        middleRow.zipWithNext().forEach { (a, b) -> assertEquals(a.x1, b.x0, "pieces must touch") }
+        assertEquals(ArmorBarShape.WIDTH - 2, middleRow.sumOf { it.x1 - it.x0 })
     }
 
     @Test

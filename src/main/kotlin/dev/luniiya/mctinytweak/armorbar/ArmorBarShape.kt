@@ -1,14 +1,15 @@
 package dev.luniiya.mctinytweak.armorbar
 
 /**
- * Lays out the armor bar as flat rectangles in name tag pixels, styled after a gray experience bar: a dark
- * outline, dark notches between the four segments, and fills with a lighter top row and a darker bottom row.
+ * Lays out the armor bar as flat rectangles in name tag pixels, styled after a gray experience bar: one
+ * continuous track with a dark outline whose four corner pixels are left out so the ends look rounded. Each
+ * worn piece colors a quarter of the track, with a lighter top row and a darker bottom row.
  * Rectangles never overlap, so they can share one depth without flickering.
  */
 object ArmorBarShape {
-    const val SEGMENT_WIDTH = 9
+    const val SEGMENT_WIDTH = 10
     const val HEIGHT = 5
-    const val WIDTH = 2 + ArmorBar.SEGMENTS * SEGMENT_WIDTH + (ArmorBar.SEGMENTS - 1)
+    const val WIDTH = 2 + ArmorBar.SEGMENTS * SEGMENT_WIDTH
     /** Gap between the bar and the top of the name tag background. */
     const val GAP_ABOVE_NAME = 2
 
@@ -29,22 +30,19 @@ object ArmorBarShape {
         val right = left + WIDTH
         val bottom = top + HEIGHT
         val rects = mutableListOf(
-            Rect(left, top, right, top + 1, OUTLINE),
-            Rect(left, bottom - 1, right, bottom, OUTLINE),
+            // Top and bottom edges stop one pixel short of each end, leaving the corners empty.
+            Rect(left + 1, top, right - 1, top + 1, OUTLINE),
+            Rect(left + 1, bottom - 1, right - 1, bottom, OUTLINE),
             Rect(left, top + 1, left + 1, bottom - 1, OUTLINE),
             Rect(right - 1, top + 1, right, bottom - 1, OUTLINE),
         )
         var x = left + 1
-        segments.forEachIndexed { index, rgb ->
+        for (rgb in segments) {
             val (high, mid, low) = rows(rgb)
             rects += Rect(x, top + 1, x + SEGMENT_WIDTH, top + 2, high)
             rects += Rect(x, top + 2, x + SEGMENT_WIDTH, top + 3, mid)
             rects += Rect(x, top + 3, x + SEGMENT_WIDTH, top + 4, low)
             x += SEGMENT_WIDTH
-            if (index < segments.lastIndex) {
-                rects += Rect(x, top + 1, x + 1, bottom - 1, OUTLINE)
-                x += 1
-            }
         }
         return rects
     }
