@@ -4,6 +4,9 @@
 
 # Let Baritone move items to the hotbar to pick the right tool or block.
 allowInventory true
+# Select the appropriate tool while mining; direct MCP attacks also select tools automatically.
+autoTool true
+assumeExternalAutoTool false
 # Keep away from mobs while pathing.
 avoidance true
 # Turn the player's head where Baritone walks and mines, so watching from freecam makes sense.

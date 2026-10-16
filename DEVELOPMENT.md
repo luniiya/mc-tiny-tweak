@@ -182,3 +182,9 @@ python3 scripts/mcp-smoke-test.py versions/1.21.11/run-sol
 ```
 
 The script reads the token locally without printing it and checks negotiation, discovery, argument rejection, concurrent requests and HTTP access protection. Unit tests run separately with Gradle.
+
+Direct MCP attacks select a harvesting tool from the hotbar or main inventory before mining and recheck while attack is held. Blocks requiring a missing tool return an error rather than being destroyed without drops. Combat attacks keep the selected weapon. Baritone uses `autoTool=true`, `allowInventory=true`, and `assumeExternalAutoTool=false`.
+
+Chat subscriptions use the negotiated 2025 MCP resource protocol. `initialize` returns an `Mcp-Session-Id`; include it on subsequent requests. Subscribe with `resources/subscribe` to `minecraft://chat` and open an authenticated GET `/mcp` with `Accept: text/event-stream`. Incoming public player chat sends `notifications/resources/updated`; fetch the text with `resources/read`. `resources/unsubscribe`, `chat_notifications {"enabled":false}`, or the MCP screen's Chat notifications switch stop notifications. Muting drops pending notifications and does not replay messages on re-enable. Own messages, Baritone and command feedback are excluded from wake events but remain readable. DELETE `/mcp` with the session header closes the session.
+
+Resource notifications do not themselves guarantee an agent inference turn: the host decides how to handle them. `wait_for_chat` is a complementary MCP tool that waits up to 60 seconds for incoming chat and returns it as a normal tool result, allowing a waiting agent to resume without injecting any prompt. It observes the same session/global mute controls and needs an initialized session.

@@ -17,6 +17,7 @@ class McpProtocol(
     private val onError: (String, Throwable) -> Unit = { _, _ -> },
     /** Called before an allowed tool runs, with its arguments. */
     private val onCall: (McpTool, JsonObject) -> Unit = { _, _ -> },
+    private val chatResources: ChatResources? = null,
 ) {
     /** Answers one request. Returns null for notifications, which get no reply. */
     fun handle(body: String): String? {
@@ -32,20 +33,25 @@ class McpProtocol(
         if (id == null || id.isJsonNull) return null
         if (method == null) return error(id, INVALID_REQUEST, "Missing method").toString()
         val params = request.get("params")?.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
-        val response = when (method) {
+        val response = try { when (method) {
             "initialize" -> result(id, initialize(params))
             "ping" -> result(id, JsonObject())
             "tools/list" -> result(id, listTools())
             "tools/call" -> callTool(id, params)
+            "resources/list", "resources/read", "resources/subscribe", "resources/unsubscribe" ->
+                chatResources?.let { result(id, it.handle(method, params)) } ?: error(id, METHOD_NOT_FOUND, "Resources are not available")
             else -> error(id, METHOD_NOT_FOUND, "Unknown method: $method")
-        }
+        } } catch (e: ToolError) { error(id, INVALID_PARAMS, e.message ?: "Invalid request") }
         return response.toString()
     }
 
     private fun initialize(params: JsonObject) = JsonObject().apply {
         val requested = params.get("protocolVersion")?.takeIf { it.isJsonPrimitive }?.asString
         addProperty("protocolVersion", requested?.takeIf { it in SUPPORTED_VERSIONS } ?: SUPPORTED_VERSIONS.first())
-        add("capabilities", JsonObject().apply { add("tools", JsonObject()) })
+        add("capabilities", JsonObject().apply {
+            add("tools", JsonObject())
+            if (chatResources?.visible() == true) add("resources", JsonObject().apply { addProperty("subscribe", true) })
+        })
         add("serverInfo", JsonObject().apply {
             addProperty("name", serverName)
             addProperty("version", serverVersion)

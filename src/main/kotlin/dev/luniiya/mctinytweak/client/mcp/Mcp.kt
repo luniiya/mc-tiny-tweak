@@ -3,6 +3,8 @@ package dev.luniiya.mctinytweak.client.mcp
 import dev.luniiya.mctinytweak.McTinyTweak
 import dev.luniiya.mctinytweak.client.Notices
 import dev.luniiya.mctinytweak.client.freecam.AgentStatusCard
+import dev.luniiya.mctinytweak.mcp.ChatResources
+import dev.luniiya.mctinytweak.mcp.McpChatEvents
 import dev.luniiya.mctinytweak.mcp.ChatLog
 import dev.luniiya.mctinytweak.mcp.McpHttpServer
 import dev.luniiya.mctinytweak.mcp.McpProtocol
@@ -27,8 +29,11 @@ object Mcp {
     const val TOKEN_FILE_NAME = "mc_tiny_tweak_mcp_token.txt"
 
     @JvmStatic
-    val chat = ChatLog()
+    val chat = ChatLog(onAdded = { if (it.wakeable) events.publishChat() })
 
+    val events = McpChatEvents { settings.enabled && settings.wakeOnChat && settings.allows(McpSettings.Feature.CHAT_READ) }
+
+    @Volatile
     var settings = McpSettings()
         private set
 
@@ -57,6 +62,7 @@ object Mcp {
         val before = settings
         settings = change(settings)
         save()
+        if (!settings.wakeOnChat || !settings.allows(McpSettings.Feature.CHAT_READ)) events.clearPending()
         if (!settings.enabled || !settings.allows(McpSettings.Feature.TAKE_OVER)) {
             Minecraft.getInstance().execute { AgentControl.release(byPlayer = true) }
         }
@@ -88,6 +94,7 @@ object Mcp {
             serverName = "MC Tiny Tweak",
             serverVersion = FabricLoader.getInstance().getModContainer(McTinyTweak.MOD_ID).map { it.metadata.version.friendlyString }.orElse("dev"),
             tools = GameTools::all,
+            chatResources = ChatResources(chat, events) { settings.allows(McpSettings.Feature.CHAT_READ) },
             allowed = { settings.allows(it) },
             onError = { tool, e -> McTinyTweak.logger.warn("MCP tool {} failed", tool, e) },
             onCall = { tool, arguments ->
@@ -96,7 +103,7 @@ object Mcp {
                 if (settings.showActions) Notices.show(Component.translatable("notice.mc_tiny_tweak.mcp.action", summary))
             },
         )
-        val created = McpHttpServer(token, protocol::handle)
+        val created = McpHttpServer(token, protocol::handle).apply { chatEvents = events }
         try {
             val bound = created.start(settings.port, McpSettings.PORT_ATTEMPTS)
             server = created

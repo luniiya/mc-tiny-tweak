@@ -1,5 +1,6 @@
 package dev.luniiya.mctinytweak.mcp
 
+import com.google.gson.JsonParser
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -12,6 +13,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.net.URI
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -26,6 +28,8 @@ class McpHttpServer(
     private val token: String,
     private val handle: (String) -> String?,
 ) {
+    var chatEvents: McpChatEvents? = null
+    private val clients = ConcurrentHashMap.newKeySet<Socket>()
     private var socket: ServerSocket? = null
     private var workers: ExecutorService? = null
 
@@ -59,6 +63,9 @@ class McpHttpServer(
     fun stop() {
         socket?.close()
         socket = null
+        chatEvents?.clear()
+        clients.forEach { runCatching { it.close() } }
+        clients.clear()
         workers?.shutdownNow()
         workers = null
     }
@@ -70,7 +77,8 @@ class McpHttpServer(
             } catch (e: IOException) {
                 return
             }
-            pool.execute { client.use(::serve) }
+            clients.add(client)
+            pool.execute { try { client.use(::serve) } finally { clients.remove(client) } }
         }
     }
 
@@ -84,19 +92,62 @@ class McpHttpServer(
         } catch (e: IOException) {
             return
         }
-        val (status, body) = route(request)
-        respond(output, status, body, if (status == 200) "application/json" else "text/plain")
+        accessError(request)?.let { return respond(output, it.first, it.second) }
+        val events = chatEvents
+        var session = request.headers["mcp-session-id"]
+        if (session != null && (events == null || !events.exists(session))) return respond(output, 404, "Unknown MCP session")
+        if (request.method == "GET" && events != null && request.headers["accept"]?.contains("text/event-stream") == true) {
+            if (session == null) return respond(output, 400, "Initialize an MCP session first")
+            return streamEvents(output, events, session)
+        }
+        if (request.method == "DELETE" && events != null) {
+            if (session == null) return respond(output, 400, "Missing MCP session")
+            events.remove(session)
+            return respond(output, 200, "")
+        }
+        var created = false
+        if (events != null && request.method == "POST" && session == null) {
+            val initializing = runCatching { JsonParser.parseString(request.body).asJsonObject.get("method")?.asString == "initialize" }.getOrDefault(false)
+            if (initializing) {
+                session = try { events.create() } catch (e: ToolError) { return respond(output, 503, e.message ?: "Unavailable") }
+                created = true
+            }
+        }
+        val (status, body) = if (events != null) events.withSession(session) { route(request) } else route(request)
+        respond(output, status, body, if (status == 200) "application/json" else "text/plain",
+            if (created) mapOf("Mcp-Session-Id" to session!!) else emptyMap())
     }
 
     internal data class Request(val method: String, val path: String, val headers: Map<String, String>, val body: String)
 
-    internal fun route(request: Request): Pair<Int, String> {
+    private fun accessError(request: Request): Pair<Int, String>? {
         if (request.path.substringBefore('?') != PATH) return 404 to "Not found"
         if (!isLocalOrigin(request.headers["origin"]) || !isLocalHost(request.headers["host"])) return 403 to "Forbidden"
         if (!hasToken(request.headers["authorization"])) return 401 to "Missing or wrong token"
+        return null
+    }
+
+    internal fun route(request: Request): Pair<Int, String> {
+        accessError(request)?.let { return it }
         if (request.method != "POST") return 405 to "Only POST is supported"
         val reply = handle(request.body) ?: return 202 to ""
         return 200 to reply
+    }
+
+    private fun streamEvents(output: OutputStream, events: McpChatEvents, session: String) {
+        try {
+            output.write(("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: close\r\n\r\n: connected\n\n").toByteArray(Charsets.UTF_8))
+            output.flush()
+            while (events.exists(session) && !Thread.currentThread().isInterrupted) {
+                val event = events.poll(session, 15_000)
+                output.write((if (event == null) ": keepalive\n\n" else "event: message\ndata: $event\n\n").toByteArray(Charsets.UTF_8))
+                output.flush()
+            }
+        } catch (_: IOException) {
+            // The client disconnected; its subscription can resume on a new GET stream.
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
     }
 
     private fun hasToken(header: String?): Boolean {
@@ -129,12 +180,12 @@ class McpHttpServer(
         return Request(parts[0], parts[1], headers, body.toString(Charsets.UTF_8))
     }
 
-    private fun respond(output: OutputStream, status: Int, body: String, contentType: String = "text/plain") {
+    private fun respond(output: OutputStream, status: Int, body: String, contentType: String = "text/plain", headers: Map<String, String> = emptyMap()) {
         val bytes = body.toByteArray(Charsets.UTF_8)
         val head = "HTTP/1.1 $status ${REASONS[status] ?: "Status"}\r\n" +
             "Content-Type: $contentType; charset=utf-8\r\n" +
             "Content-Length: ${bytes.size}\r\n" +
-            "Connection: close\r\n\r\n"
+            headers.entries.joinToString("") { "${it.key}: ${it.value}\r\n" } + "Connection: close\r\n\r\n"
         try {
             output.write(head.toByteArray(Charsets.ISO_8859_1))
             output.write(bytes)
@@ -161,7 +212,7 @@ class McpHttpServer(
         private val REASONS = mapOf(
             200 to "OK", 202 to "Accepted", 400 to "Bad Request", 401 to "Unauthorized", 403 to "Forbidden",
             404 to "Not Found", 405 to "Method Not Allowed", 411 to "Length Required", 413 to "Payload Too Large",
-            431 to "Request Header Fields Too Large",
+            431 to "Request Header Fields Too Large", 503 to "Service Unavailable",
         )
 
         /** Agents send no Origin; a browser always does, and only local pages are let through. */

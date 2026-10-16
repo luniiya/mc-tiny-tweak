@@ -25,6 +25,9 @@ object AgentInput {
     var heldCount = 0
         private set
 
+    @Volatile
+    var miningError: String? = null
+
     fun touch() {
         lastInputMillis = System.currentTimeMillis()
     }
@@ -60,6 +63,16 @@ object AgentInput {
                 entry.key.isDown = false
                 iterator.remove()
             } else {
+                if (entry.key === minecraft.options.keyAttack) {
+                    try {
+                        AgentMiningTools.prepare(minecraft)
+                    } catch (error: dev.luniiya.mctinytweak.mcp.ToolError) {
+                        miningError = error.message
+                        entry.key.isDown = false
+                        iterator.remove()
+                        continue
+                    }
+                }
                 entry.key.isDown = true
                 entry.setValue(entry.value - 1)
             }

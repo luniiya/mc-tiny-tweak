@@ -1,6 +1,8 @@
 package dev.luniiya.mctinytweak.mixin.client.mcp;
 
 import dev.luniiya.mctinytweak.client.Notices;
+import dev.luniiya.mctinytweak.mcp.ChatWake;
+import net.minecraft.client.Minecraft;
 import dev.luniiya.mctinytweak.client.mcp.Mcp;
 import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.gui.components.ChatComponent;
@@ -20,6 +22,9 @@ abstract class ChatComponentMixin {
 		at = @At("HEAD")
 	)
 	private void mc_tiny_tweak$logForAgent(Component message, @Nullable MessageSignature signature, @Nullable GuiMessageTag tag, CallbackInfo ci) {
-		if (!Notices.getShowing()) Mcp.getChat().add(message.getString(), System.currentTimeMillis());
+		if (!Notices.getShowing()) {
+            var player = Minecraft.getInstance().player;
+            Mcp.getChat().add(message.getString(), System.currentTimeMillis(), ChatWake.isIncoming(message.getString(), player == null ? null : player.getName().getString()));
+        }
 	}
 }

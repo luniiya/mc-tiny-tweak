@@ -14,6 +14,8 @@ class BaritoneDefaultsTest {
     fun `the shipped defaults load and only use known setting shapes`() {
         val defaults = BaritoneDefaults.load()
         assertEquals("true", defaults["allowinventory"])
+        assertEquals("true", defaults["autotool"])
+        assertEquals("false", defaults["assumeexternalautotool"])
         assertTrue(defaults.keys.all { it == it.lowercase() && ' ' !in it })
     }
 

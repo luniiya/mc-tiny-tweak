@@ -92,6 +92,31 @@ object GameTools {
                 ),
             ) { readChat(it.optInt("after_id", 0, 0..Int.MAX_VALUE).toLong(), it.optInt("limit", 50, 1..500)) },
             McpTool(
+                "wait_for_chat", "Waits for incoming player chat through this MCP tool call, then returns it. A pending tool result lets an agent resume without prompt injection. Needs an initialized HTTP session; chat_notifications can mute it. Own messages and tool feedback do not wake it.", Feature.CHAT_READ,
+                Schema.obj(
+                    Schema.integer("after_id", "Only newer incoming lines (default: start waiting from now).", min = 0),
+                    Schema.integer("timeout_ms", "Maximum wait (default 30000).", min = 0, max = 60000),
+                ),
+            ) {
+                val after = it.optInt("after_id", Mcp.chat.lastId().coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), 0..Int.MAX_VALUE).toLong()
+                val deadline = System.nanoTime() + it.optInt("timeout_ms", 30000, 0..60000) * 1_000_000L
+                var lines: List<dev.luniiya.mctinytweak.mcp.ChatLog.Line>
+                while (true) {
+                    if (Mcp.events.muted()) return@McpTool ToolResult.text("Chat wake is muted")
+                    lines = Mcp.chat.incomingAfter(after, 100)
+                    if (lines.isNotEmpty() || System.nanoTime() >= deadline) break
+                    Thread.sleep(100)
+                }
+                ToolResult.text(if (lines.isEmpty()) "No incoming chat (newest id ${Mcp.chat.lastId()})" else lines.joinToString("\n") { line -> "[${line.id}] ${line.text}" })
+            },
+            McpTool(
+                "chat_notifications", "Enables or mutes incoming-chat MCP resource notifications for your initialized HTTP session. Subscribe to minecraft://chat and open the authenticated GET event stream to receive them. Your host decides whether they wake an agent; this never injects prompts.", Feature.CHAT_READ,
+                Schema.obj(Schema.Property("enabled", JsonObject().apply { addProperty("type", "boolean") }, true)),
+            ) {
+                Mcp.events.wake(it["enabled"].asBoolean)
+                ToolResult.text(if (it["enabled"].asBoolean) "Chat notifications enabled for this session" else "Chat notifications muted for this session")
+            },
+            McpTool(
                 "send_chat", "Sends a chat message as the player. Needs take_over. Use run_command for commands.", Feature.CHAT_SEND,
                 Schema.obj(Schema.string("message", "The message, without a leading slash.", required = true)),
             ) { sendChat(it.requireString("message")) },
@@ -103,7 +128,7 @@ object GameTools {
                 ),
             ) { runCommand(it.requireString("command"), it.optInt("wait_ms", 1000, 0..10_000)) },
             McpTool(
-                "hold_keys", "Holds keys for a number of ticks (20 ticks = 1 second), then releases them. Names: ${AgentControls.KEY_ALIASES.keys.joinToString()}, or any key mapping id like key.hotbar.1. Holding attack mines the targeted block.", Feature.INPUT,
+                "hold_keys", "Holds keys for a number of ticks (20 ticks = 1 second), then releases them. Names: ${AgentControls.KEY_ALIASES.keys.joinToString()}, or any key mapping id like key.hotbar.1. Holding attack mines the targeted block, automatically selecting an available harvesting tool.", Feature.INPUT,
                 Schema.obj(
                     Schema.stringList("keys", "The keys to hold together.", required = true),
                     Schema.integer("ticks", "How long to hold them.", required = true, min = 1, max = AgentControls.MAX_HOLD_TICKS),
@@ -238,6 +263,7 @@ object GameTools {
             })
             addProperty("control", if (AgentControl.agentInControl()) "agent" else "player")
             addProperty("agent_keys_held", AgentInput.heldCount)
+            addProperty("agent_mining_error", AgentInput.miningError)
             addProperty("baritone_installed", BaritoneBridge.installed)
         }
         ToolResult.text(gson.toJson(state))
@@ -431,17 +457,28 @@ object GameTools {
         onClient { minecraft ->
             minecraft.requirePlayer()
             val mappings = keys.map { mapping(minecraft, it) }
+            if (minecraft.options.keyAttack in mappings) {
+                AgentMiningTools.prepare(minecraft)
+                AgentInput.miningError = null
+            }
             for (mapping in mappings) AgentInput.hold(mapping, ticks)
         }
         if (!wait) return ToolResult.text("Holding ${keys.joinToString()} for $ticks ticks")
         val deadline = System.currentTimeMillis() + ticks * 50L + 5_000
         Thread.sleep(ticks * 50L)
         while (AgentInput.heldCount > 0 && System.currentTimeMillis() < deadline) Thread.sleep(25)
+        if (keys.any { AgentControls.mappingName(it) == "key.attack" }) {
+            onClient { AgentInput.miningError }?.let { throw ToolError(it) }
+        }
         return ToolResult.text("Held ${keys.joinToString()} for $ticks ticks")
     }
 
     private fun pressKey(key: String): ToolResult {
-        onClient { minecraft -> AgentInput.click(mapping(minecraft, key)) }
+        onClient { minecraft ->
+            val mapping = mapping(minecraft, key)
+            if (mapping === minecraft.options.keyAttack) AgentMiningTools.prepare(minecraft)
+            AgentInput.click(mapping)
+        }
         return ToolResult.text("Pressed $key")
     }
 

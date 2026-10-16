@@ -52,6 +52,14 @@ class McpScreen(private val parent: Screen?) : Screen(Component.translatable("sc
                 },
         )
         actions.active = Mcp.settings.enabled
+        y += ROW
+        addRenderableWidget(
+            CycleButton.onOffBuilder(Mcp.settings.wakeOnChat)
+                .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.mcp.chat_wake.tooltip")) }
+                .create(left, y, wide, 20, Component.translatable("screen.mc_tiny_tweak.mcp.chat_wake")) { _, value ->
+                    Mcp.update { it.copy(wakeOnChat = value) }
+                },
+        )
         y += ROW + 6
         for ((index, feature) in Feature.entries.withIndex()) {
             val x = if (index % 2 == 0) left else left + half + 10

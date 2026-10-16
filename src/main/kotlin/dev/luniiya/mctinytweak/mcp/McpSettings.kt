@@ -14,6 +14,7 @@ data class McpSettings(
     val features: Set<Feature> = Feature.entries.toSet(),
     /** Echo every tool call in chat as a mod notice, so the player can follow along. */
     val showActions: Boolean = true,
+    val wakeOnChat: Boolean = true,
 ) {
     /** What the agent may do. Each tool belongs to one feature and disappears when it is off. */
     enum class Feature(val key: String) {
@@ -39,6 +40,7 @@ data class McpSettings(
         append("$ENABLED=$enabled\n")
         append("$PORT=$port\n")
         append("$SHOW_ACTIONS=$showActions\n")
+        append("wakeOnChat=$wakeOnChat\n")
         for (feature in Feature.entries) append("$FEATURE_PREFIX${feature.key}=${feature in features}\n")
     }
 
@@ -72,6 +74,7 @@ data class McpSettings(
                     values[FEATURE_PREFIX + it.key]?.toBooleanStrictOrNull() ?: defaults.allows(it)
                 }.toSet(),
                 showActions = values[SHOW_ACTIONS]?.toBooleanStrictOrNull() ?: defaults.showActions,
+                wakeOnChat = values["wakeOnChat"]?.toBooleanStrictOrNull() ?: defaults.wakeOnChat,
             )
         }
     }
