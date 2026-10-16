@@ -1,24 +1,21 @@
 package dev.luniiya.mctinytweak.armorbar
 
 import net.minecraft.core.component.DataComponents
-import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.Style
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.DyedItemColor
 import net.minecraft.world.item.equipment.EquipmentAssets
 
 /**
- * A four segment bar shown above player names while armor is hidden. Each worn piece fills one segment in its
- * material's color; worn pieces fill from the left so one piece reads as a quarter full bar.
+ * The four segments of the bar shown above player names while armor is hidden; [ArmorBarShape] draws them.
+ * Each worn piece fills one segment in its material's color; worn pieces fill from the left so one piece
+ * reads as a quarter full bar.
  */
 object ArmorBar {
     const val SEGMENTS = 4
     const val EMPTY_COLOR = 0x3A3A3A
     /** Shown for armor from data packs or other mods whose material has no color here. */
     const val UNKNOWN_COLOR = 0xFFFFFF
-    /** Two full blocks per segment, since the block glyph renders narrow. */
-    const val SEGMENT_TEXT = "██"
 
     private val SLOTS = listOf(EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET)
 
@@ -48,11 +45,5 @@ object ArmorBar {
     fun segments(head: ItemStack, chest: ItemStack, legs: ItemStack, feet: ItemStack): List<Int> {
         val worn = listOf(head, chest, legs, feet).zip(SLOTS).mapNotNull { (stack, slot) -> colorOf(stack, slot) }
         return worn + List(SEGMENTS - worn.size) { EMPTY_COLOR }
-    }
-
-    fun component(segments: List<Int>): Component {
-        val bar = Component.empty()
-        for (color in segments) bar.append(Component.literal(SEGMENT_TEXT).withStyle(Style.EMPTY.withColor(color)))
-        return bar
     }
 }

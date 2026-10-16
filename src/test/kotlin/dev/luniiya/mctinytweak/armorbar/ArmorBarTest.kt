@@ -60,13 +60,6 @@ class ArmorBarTest {
     }
 
     @Test
-    fun `the bar text has one colored part per segment`() {
-        val bar = ArmorBar.component(listOf(0x123456, ArmorBar.EMPTY_COLOR, ArmorBar.EMPTY_COLOR, ArmorBar.EMPTY_COLOR))
-        assertEquals(ArmorBar.SEGMENT_TEXT.repeat(4), bar.string)
-        assertEquals(0x123456, bar.siblings[0].style.color?.value)
-    }
-
-    @Test
     fun `armor mixins apply to the vanilla renderers`() {
         assertTrue(HumanoidArmorLayer::class.java.declaredMethods.any { it.name.contains("hidePlayerArmor") })
         assertTrue(AvatarRenderer::class.java.declaredMethods.any { it.name.contains("submitArmorBar") })
