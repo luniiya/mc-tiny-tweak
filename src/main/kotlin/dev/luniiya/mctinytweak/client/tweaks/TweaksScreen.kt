@@ -18,7 +18,7 @@ class TweaksScreen(private val parent: Screen?) : Screen(Component.translatable(
     override fun init() {
         val buttonWidth = 200
         val x = (width - buttonWidth) / 2
-        var y = height / 2 - 44
+        var y = height / 2 - 56
         addRenderableWidget(
             CycleButton.onOffBuilder(Tweaks.settings.showArmor)
                 .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.show_armor.tooltip")) }
@@ -32,6 +32,14 @@ class TweaksScreen(private val parent: Screen?) : Screen(Component.translatable(
                 .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.compact_health.tooltip")) }
                 .create(x, y, buttonWidth, 20, Component.translatable("screen.mc_tiny_tweak.tweaks.compact_health")) { _, value ->
                     Tweaks.update { it.copy(compactHealth = value) }
+                },
+        )
+        y += 24
+        addRenderableWidget(
+            CycleButton.onOffBuilder(Tweaks.settings.damageNumbers)
+                .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers.tooltip")) }
+                .create(x, y, buttonWidth, 20, Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers")) { _, value ->
+                    Tweaks.update { it.copy(damageNumbers = value) }
                 },
         )
         y += 24
@@ -69,7 +77,7 @@ class TweaksScreen(private val parent: Screen?) : Screen(Component.translatable(
 
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(graphics, mouseX, mouseY, partialTick)
-        graphics.drawCenteredString(font, title, width / 2, height / 2 - 60, 0xFFFFFFFF.toInt())
+        graphics.drawCenteredString(font, title, width / 2, height / 2 - 72, 0xFFFFFFFF.toInt())
     }
 
     override fun onClose() {

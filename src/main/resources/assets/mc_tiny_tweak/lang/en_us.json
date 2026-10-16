@@ -51,6 +51,8 @@
   "screen.mc_tiny_tweak.tweaks.show_armor": "Show armor",
   "screen.mc_tiny_tweak.tweaks.compact_health": "Compact health",
   "screen.mc_tiny_tweak.tweaks.compact_health.tooltip": "Past 20 hearts, shows two bars instead of rows of hearts. Health comes in layers of 20 hearts, each its own color. The thin bar shows every layer, golden hearts and what is missing in black. The thick bar shows the top layer over the one below.",
+  "screen.mc_tiny_tweak.tweaks.damage_numbers": "Damage numbers",
+  "screen.mc_tiny_tweak.tweaks.damage_numbers.tooltip": "Shows how much damage entities near you take as floating numbers. Bigger hits get warmer colors, and critical hits show bigger in gold.",
   "screen.mc_tiny_tweak.tweaks.fullbright": "Fullbright",
   "screen.mc_tiny_tweak.tweaks.fullbright.tooltip": "Lights everything like night vision, even caves at night. Key: %s",
   "screen.mc_tiny_tweak.server_stats.tps": "TPS %s",

@@ -25,6 +25,14 @@ class TweakSettingsTest {
     }
 
     @Test
+    fun `damage numbers are on by default and can be turned off`() {
+        assertTrue(TweakSettings().damageNumbers)
+        assertTrue(TweakSettings.parse("compactHealth=false").damageNumbers)
+        val off = TweakSettings(damageNumbers = false)
+        assertEquals(off, TweakSettings.parse(off.serialize()))
+    }
+
+    @Test
     fun `settings survive saving and loading`() {
         val shown = TweakSettings(showArmor = true)
         assertEquals(shown, TweakSettings.parse(shown.serialize()))

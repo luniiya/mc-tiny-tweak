@@ -21,6 +21,7 @@ import dev.luniiya.mctinytweak.client.mcp.PortalBuilder
 import dev.luniiya.mctinytweak.client.tweaks.Tweaks
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
+import dev.luniiya.mctinytweak.client.damagenumbers.DamageNumberPopups
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.minecraft.client.KeyMapping
@@ -62,6 +63,7 @@ object McTinyTweakClient : ClientModInitializer {
         HiddenCommandFeedback.register()
         ServerStats.register()
         InventoryPresetBar.register()
+        DamageNumberPopups.register()
         Mcp.load()
         ClientLifecycleEvents.CLIENT_STARTED.register {
             if (BaritoneBridge.installed) {
