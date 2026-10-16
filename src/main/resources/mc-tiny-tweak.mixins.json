@@ -17,6 +17,7 @@
     "client.freecam.MouseHandlerAccessor",
     "client.freecam.ScreenBackgroundMixin",
     "client.freelook.CameraMixin",
+    "client.healthbar.GuiHealthMixin",
     "client.freelook.MouseHandlerMixin",
     "client.hotbar.GuiInvoker",
     "client.inventorypresets.CreateWorldScreenMixin",

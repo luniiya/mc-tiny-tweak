@@ -18,12 +18,20 @@ class TweaksScreen(private val parent: Screen?) : Screen(Component.translatable(
     override fun init() {
         val buttonWidth = 200
         val x = (width - buttonWidth) / 2
-        var y = height / 2 - 32
+        var y = height / 2 - 44
         addRenderableWidget(
             CycleButton.onOffBuilder(Tweaks.settings.showArmor)
                 .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.show_armor.tooltip")) }
                 .create(x, y, buttonWidth, 20, Component.translatable("screen.mc_tiny_tweak.tweaks.show_armor")) { _, value ->
                     Tweaks.update { it.copy(showArmor = value) }
+                },
+        )
+        y += 24
+        addRenderableWidget(
+            CycleButton.onOffBuilder(Tweaks.settings.compactHealth)
+                .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.compact_health.tooltip")) }
+                .create(x, y, buttonWidth, 20, Component.translatable("screen.mc_tiny_tweak.tweaks.compact_health")) { _, value ->
+                    Tweaks.update { it.copy(compactHealth = value) }
                 },
         )
         y += 24

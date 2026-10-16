@@ -17,6 +17,14 @@ class TweakSettingsTest {
     }
 
     @Test
+    fun `compact health is on by default and can be turned off`() {
+        assertTrue(TweakSettings().compactHealth)
+        assertTrue(TweakSettings.parse("showArmor=true").compactHealth)
+        val off = TweakSettings(compactHealth = false)
+        assertEquals(off, TweakSettings.parse(off.serialize()))
+    }
+
+    @Test
     fun `settings survive saving and loading`() {
         val shown = TweakSettings(showArmor = true)
         assertEquals(shown, TweakSettings.parse(shown.serialize()))
