@@ -1,5 +1,6 @@
 package dev.luniiya.mctinytweak.client.mcp
 
+import com.mojang.blaze3d.platform.NativeImage
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -11,6 +12,7 @@ import dev.luniiya.mctinytweak.mcp.CraftingFit
 import dev.luniiya.mctinytweak.mcp.McpSettings.Feature
 import dev.luniiya.mctinytweak.mcp.McpTool
 import dev.luniiya.mctinytweak.mcp.Schema
+import dev.luniiya.mctinytweak.mcp.ScreenshotSize
 import dev.luniiya.mctinytweak.mcp.Schema.optDouble
 import dev.luniiya.mctinytweak.mcp.Schema.optInt
 import dev.luniiya.mctinytweak.mcp.Schema.optString
@@ -313,12 +315,19 @@ object GameTools {
         val png = CompletableFuture<ByteArray>()
         val size = onClient { minecraft ->
             val target = minecraft.mainRenderTarget
-            val scale = if (target.width % downscale == 0 && target.height % downscale == 0) downscale else 1
-            Screenshot.takeScreenshot(target, scale) { image ->
+            val size = ScreenshotSize.plan(target.width, target.height, downscale)
+            Screenshot.takeScreenshot(target, size.captureScale) { image ->
                 try {
                     val file = Files.createTempFile("mc-tiny-tweak-mcp", ".png")
                     try {
-                        image.writeToFile(file)
+                        if (size.captureScale == downscale) {
+                            image.writeToFile(file)
+                        } else {
+                            NativeImage(size.width, size.height, false).use { resized ->
+                                image.resizeSubRectTo(0, 0, image.width, image.height, resized)
+                                resized.writeToFile(file)
+                            }
+                        }
                         png.complete(Files.readAllBytes(file))
                     } finally {
                         Files.deleteIfExists(file)
@@ -329,7 +338,7 @@ object GameTools {
                     image.close()
                 }
             }
-            "${target.width / scale}x${target.height / scale}"
+            "${size.width}x${size.height}"
         }
         val bytes = try {
             png.get(10, TimeUnit.SECONDS)

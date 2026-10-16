@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Read-only transport checks against one running MC Tiny Tweak instance."""
 import argparse
+import base64
 import concurrent.futures
 import json
+import struct
 from pathlib import Path
 import urllib.error
 import urllib.request
@@ -40,6 +42,14 @@ def main():
         check(rpc('tools/call', {'name': 'select_slot', 'arguments': arguments})['result']['isError'],
               'invalid slot arguments rejected: ' + repr(arguments))
     check(not rpc('tools/call', {'name': 'get_state'})['result']['isError'], 'state in world or on title screen')
+    dimensions = []
+    for scale in (2, 4):
+        result = rpc('tools/call', {'name': 'screenshot', 'arguments': {'downscale': scale}})['result']
+        check(not result['isError'], 'screenshot scale ' + str(scale))
+        png = base64.b64decode(next(item['data'] for item in result['content'] if item['type'] == 'image'))
+        check(png[:8] == b'\x89PNG\r\n\x1a\n', 'PNG screenshot format')
+        dimensions.append(struct.unpack('>II', png[16:24]))
+    check(dimensions[1] == tuple(max(1, size // 2) for size in dimensions[0]), 'scale 4 produces half the dimensions of scale 2')
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         check(all(result['result'] == {} for result in pool.map(lambda _: rpc('ping'), range(40))), '40 concurrent pings')
     for label, headers, method, expected in [
