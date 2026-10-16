@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.language.kotlin.KotlinAdapter
 import net.fabricmc.loader.api.FabricLoader
+import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
@@ -46,18 +47,23 @@ class ModLoadingTest {
             assertEquals(1, config.getAsJsonObject("injectors")["defaultRequire"].asInt)
             for (side in listOf("mixins", "client", "server")) {
                 for (mixin in config.getAsJsonArray(side) ?: continue) {
-                    Class.forName("${config["package"].asString}.${mixin.asString}", false, javaClass.classLoader)
+                    // Mixin classes must not be loaded directly, so check the packaged class file instead.
+                    val path = "${config["package"].asString}.${mixin.asString}".replace('.', '/') + ".class"
+                    assertNotNull(javaClass.classLoader.getResource(path), "Missing mixin class $path")
                 }
             }
         }
     }
 
     @Test
-    fun `client entrypoint is declared with the Kotlin adapter and its class exists`() {
+    fun `client and preLaunch entrypoints are declared with the Kotlin adapter and its class exists`() {
         val entrypoint = resource("fabric.mod.json").getAsJsonObject("entrypoints")
             .getAsJsonArray("client").single().asJsonObject
         assertEquals("kotlin", entrypoint["adapter"].asString)
         Class.forName(entrypoint["value"].asString, false, javaClass.classLoader)
+        val preLaunch = resource("fabric.mod.json").getAsJsonObject("entrypoints")
+            .getAsJsonArray("preLaunch").single().asJsonObject
+        assertSame(McTinyTweakPreLaunch, KotlinAdapter().create(container, preLaunch["value"].asString, PreLaunchEntrypoint::class.java))
     }
 
     @Test

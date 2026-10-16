@@ -12,7 +12,8 @@
   "environment": "*",
   "entrypoints": {
     "main": [{"adapter": "kotlin", "value": "dev.luniiya.mctinytweak.McTinyTweak"}],
-    "client": [{"adapter": "kotlin", "value": "dev.luniiya.mctinytweak.client.McTinyTweakClient"}]
+    "client": [{"adapter": "kotlin", "value": "dev.luniiya.mctinytweak.client.McTinyTweakClient"}],
+    "preLaunch": [{"adapter": "kotlin", "value": "dev.luniiya.mctinytweak.McTinyTweakPreLaunch"}]
   },
   "mixins": ["mc-tiny-tweak.mixins.json"],
   "depends": {

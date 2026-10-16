@@ -22,18 +22,15 @@ page. Start with a test world. Rebuild and replace the JAR when testing a change
 The `runClient` task starts a separate development instance with dependencies
 already loaded, so it is faster for day-to-day coding.
 
-## Your own settings in the dev client
+## Personal default options
 
-`runClient` copies `options.txt` from a Prism instance before every launch, so
-the dev client uses your settings and keybinds. Prism stays the source of truth:
-settings changed inside the dev client are replaced on the next launch. Set the
-instance's game folder per machine in `~/.gradle/gradle.properties`:
+`src/main/resources/mc_tiny_tweak/default-options.txt` is the reference
+options.txt. On a fresh game with no options.txt, the mod writes it before the
+game loads settings. Its `key_` lines also replace each keybind's built-in
+default, so Reset in Controls restores these binds. Edit the file and rebuild to
+change a setting or bind permanently. FOV is stored as (fov - 70) / 40.
 
-```properties
-mctinytweak.prismInstance=/path/to/prism/instances/1.21.11/minecraft
-```
-
-Without it, or if the file is missing, the dev client keeps its own settings.
+To see the defaults in the dev client, delete `versions/1.21.11/run/options.txt`.
 
 ## Reloading
 
