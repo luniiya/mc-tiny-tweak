@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import dev.luniiya.mctinytweak.baritone.BaritoneDefaults
 import dev.luniiya.mctinytweak.client.freecam.Freecam
 import dev.luniiya.mctinytweak.mcp.AgentControls
+import dev.luniiya.mctinytweak.mcp.CraftingFit
 import dev.luniiya.mctinytweak.mcp.McpSettings.Feature
 import dev.luniiya.mctinytweak.mcp.McpTool
 import dev.luniiya.mctinytweak.mcp.Schema
@@ -28,7 +29,15 @@ import net.minecraft.client.multiplayer.ServerList
 import net.minecraft.client.multiplayer.resolver.ServerAddress
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.entity.player.StackedItemContents
+import net.minecraft.world.inventory.AbstractCraftingMenu
+import net.minecraft.world.inventory.ClickType
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.crafting.display.RecipeDisplay
+import net.minecraft.world.item.crafting.display.RecipeDisplayId
+import net.minecraft.world.item.crafting.display.ShapedCraftingRecipeDisplay
+import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay
+import net.minecraft.world.item.crafting.display.SlotDisplayContext
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
@@ -105,6 +114,13 @@ object GameTools {
                 "select_slot", "Selects a hotbar slot.", Feature.INPUT,
                 Schema.obj(Schema.integer("slot", "1 to 9.", required = true, min = 1, max = 9)),
             ) { selectSlot(it.optInt("slot", 1, 1..9)) },
+            McpTool(
+                "craft", "Needs take_over. Crafts an item through the recipe book, like clicking the recipe and shift-clicking the result. Works in the inventory's 2x2 grid; 3x3 recipes (tools, armor) need an open crafting table: look at one and press_key use first. The recipe must be unlocked in the recipe book.", Feature.INPUT,
+                Schema.obj(
+                    Schema.string("item", "The item to make, for example `oak_planks` or `minecraft:stick`.", required = true),
+                    Schema.integer("times", "How many times to craft the recipe (default 1). One craft of planks makes 4.", min = 1, max = 64),
+                ),
+            ) { craft(it.requireString("item"), it.optInt("times", 1, 1..64)) },
             McpTool("close_screen", "Closes the open screen or menu, such as the pause menu, an inventory or a chest.", Feature.INPUT) { closeScreen() },
             McpTool(
                 "baritone", "Needs take_over. Runs a Baritone command (without #), for example `mine diamond_ore`, `goto 100 64 -200`, `follow player Name`, `stop`. Baritone's replies are returned from chat.", Feature.BARITONE,
@@ -446,6 +462,63 @@ object GameTools {
         }
         return ToolResult.text("Left the world")
     }
+
+    private fun craft(item: String, times: Int): ToolResult {
+        requireTakeOver("craft")
+        val id = CraftingFit.itemId(item)
+        val recipe = onClient { minecraft -> findRecipe(minecraft, id) }
+        var crafted = 0
+        var made = 0
+        repeat(times) {
+            onClient { minecraft ->
+                val menu = minecraft.requirePlayer().containerMenu
+                minecraft.gameMode!!.handlePlaceRecipe(menu.containerId, recipe, false)
+            }
+            Thread.sleep(CRAFT_WAIT_MILLIS)
+            val count = onClient { minecraft ->
+                val player = minecraft.requirePlayer()
+                val menu = player.containerMenu as? AbstractCraftingMenu ?: return@onClient 0
+                val result = menu.resultSlot.item
+                if (result.isEmpty) return@onClient 0
+                val count = result.count
+                minecraft.gameMode!!.handleInventoryMouseClick(menu.containerId, menu.resultSlot.index, 0, ClickType.QUICK_MOVE, player)
+                count
+            }
+            if (count == 0) {
+                if (crafted == 0) throw ToolError("Could not craft $id: missing ingredients, or the server refused the recipe")
+                return ToolResult.text("Crafted $crafted times ($made $id), then ran out of ingredients")
+            }
+            crafted++
+            made += count
+            Thread.sleep(CRAFT_WAIT_MILLIS)
+        }
+        return ToolResult.text("Crafted $crafted times ($made $id)")
+    }
+
+    /** A known, craftable recipe for [id] that fits the open crafting grid. Client thread. */
+    private fun findRecipe(minecraft: Minecraft, id: String): RecipeDisplayId {
+        val player = minecraft.requirePlayer()
+        val menu = player.containerMenu as? AbstractCraftingMenu
+            ?: throw ToolError("Close the open screen, or open a crafting table, before crafting")
+        val context = SlotDisplayContext.fromLevel(player.level())
+        val contents = StackedItemContents()
+        player.inventory.fillStackedContents(contents)
+        menu.fillCraftSlotsStackedContents(contents)
+        val matching = player.recipeBook.collections.flatMap { it.recipes }
+            .filter { entry -> entry.resultItems(context).any { BuiltInRegistries.ITEM.getKey(it.item).toString() == id } }
+        if (matching.isEmpty()) throw ToolError("No unlocked recipe makes $id")
+        val fitting = matching.filter { fits(it.display(), menu) }
+        if (fitting.isEmpty()) throw ToolError("$id needs a 3x3 grid: open a crafting table first")
+        return (fitting.firstOrNull { it.canCraft(contents) } ?: throw ToolError("Missing ingredients for $id")).id()
+    }
+
+    private fun fits(display: RecipeDisplay, menu: AbstractCraftingMenu) = when (display) {
+        is ShapedCraftingRecipeDisplay -> CraftingFit.shaped(display.width(), display.height(), menu.gridWidth, menu.gridHeight)
+        is ShapelessCraftingRecipeDisplay -> CraftingFit.shapeless(display.ingredients().size, menu.gridWidth, menu.gridHeight)
+        else -> false
+    }
+
+    private const val CRAFT_WAIT_MILLIS = 150L
 
     private fun requireTakeOver(tool: String) {
         if (!AgentControl.agentInControl()) throw ToolError("$tool needs take_over first, so the person is not playing at the same time")

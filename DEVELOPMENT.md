@@ -113,6 +113,12 @@ physical keys (`InputConstants.isKeyDown`), because key mappings are blocked whi
 `CameraFreecamMixin` moves the camera at the end of `Camera.setup` and marks it detached so the body renders.
 Agent screenshots show the agent's eyes for two frames unless they pass `view: "player"`.
 
+## Crafting tool
+
+`craft` (needs take over) finds an unlocked recipe-book entry for the item that fits the open grid (2x2 inventory,
+3x3 crafting table), sends `handlePlaceRecipe`, then shift-clicks the result slot, once per `times`. Baritone cannot
+craft, so this fills the gap for agents getting tools.
+
 ## Baritone settings
 
 Mod menu > MCP > Baritone settings lists every Baritone setting with search. `mc_tiny_tweak/baritone-defaults.txt`
