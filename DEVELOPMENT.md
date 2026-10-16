@@ -102,3 +102,7 @@ The Controls > Key Binds screen gets a key search (click it, then press a key or
 ## Freelook
 
 Hold the freelook key (left control by default; sprint is moved to Z in the personal defaults) to look around while the player keeps facing and moving the same way. First person switches to the back view while held and returns on release. `FreelookCamera` holds the tested logic. `MouseHandlerMixin` sends mouse movement to it instead of the player, and `CameraMixin` points the camera along it. Written from scratch with Celibistrial's AGPL Freelook mod as a behavior reference only.
+
+## Visual tweaks
+
+The burning overlay sits lower (`FireOverlay.EXTRA_DROP`) and shields held in first person render at 60% opacity (`ShieldOpacity.OPACITY`); tune either constant. Shields share the banner pattern code with banners, so `ShieldSpecialRendererMixin` flags a held shield while it submits and `BannerRendererMixin` only fades layers while that flag is set.

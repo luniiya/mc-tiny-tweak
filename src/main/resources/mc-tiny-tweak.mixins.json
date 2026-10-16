@@ -9,7 +9,10 @@
     "client.freelook.MouseHandlerMixin",
     "client.keybinds.KeyBindsScreenAccessor",
     "client.keybinds.KeyBindsScreenMixin",
-    "client.keybinds.KeyEntryAccessor"
+    "client.keybinds.KeyEntryAccessor",
+    "client.visuals.BannerRendererMixin",
+    "client.visuals.ScreenEffectRendererMixin",
+    "client.visuals.ShieldSpecialRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
