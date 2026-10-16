@@ -2,6 +2,7 @@ package dev.luniiya.mctinytweak.client
 
 import com.mojang.blaze3d.platform.InputConstants
 import dev.luniiya.mctinytweak.McTinyTweak
+import dev.luniiya.mctinytweak.client.baritone.BaritoneLog
 import dev.luniiya.mctinytweak.client.freecam.AgentScreen
 import dev.luniiya.mctinytweak.client.freecam.AgentStatusCard
 import dev.luniiya.mctinytweak.client.freecam.Freecam
@@ -54,7 +55,10 @@ object McTinyTweakClient : ClientModInitializer {
         FreecamHud.register()
         Mcp.load()
         ClientLifecycleEvents.CLIENT_STARTED.register {
-            if (BaritoneBridge.installed) BaritoneSettings.applyNewModDefaults()
+            if (BaritoneBridge.installed) {
+                BaritoneSettings.applyNewModDefaults()
+                BaritoneLog.install()
+            }
         }
         // Before vanilla reads key states, so agent-held keys count for the whole tick.
         ClientTickEvents.START_CLIENT_TICK.register(AgentInput::tick)

@@ -1,6 +1,7 @@
 package dev.luniiya.mctinytweak.client.mcp
 
 import baritone.api.BaritoneAPI
+import dev.luniiya.mctinytweak.client.baritone.BaritoneLog
 import net.fabricmc.loader.api.FabricLoader
 
 /**
@@ -11,8 +12,10 @@ object BaritoneBridge {
     val installed: Boolean get() = FabricLoader.getInstance().isModLoaded("baritone")
 
     /** Runs a Baritone command such as `mine diamond_ore`, without the `#` prefix. Client thread only. */
-    fun execute(command: String): Boolean =
-        BaritoneAPI.getProvider().primaryBaritone.commandManager.execute(command)
+    fun execute(command: String): Boolean {
+        BaritoneLog.command(command)
+        return BaritoneAPI.getProvider().primaryBaritone.commandManager.execute(command)
+    }
 
     /** Cancels pathing and every process. Client thread only. */
     fun stop() {

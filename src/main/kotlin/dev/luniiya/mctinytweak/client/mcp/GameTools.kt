@@ -123,7 +123,7 @@ object GameTools {
             ) { craft(it.requireString("item"), it.optInt("times", 1, 1..64)) },
             McpTool("close_screen", "Closes the open screen or menu, such as the pause menu, an inventory or a chest.", Feature.INPUT) { closeScreen() },
             McpTool(
-                "baritone", "Needs take_over. Runs a Baritone command (without #), for example `mine diamond_ore`, `goto 100 64 -200`, `follow player Name`, `stop`. Baritone's replies are returned from chat.", Feature.BARITONE,
+                "baritone", "Needs take_over. Runs a Baritone command (without #), for example `mine diamond_ore`, `goto 100 64 -200`, `follow player Name`, `stop`. Baritone's replies are returned (they stay out of the player's chat).", Feature.BARITONE,
                 Schema.obj(
                     Schema.string("command", "The Baritone command.", required = true),
                     Schema.integer("wait_ms", "How long to collect Baritone's replies (default 1000).", min = 0, max = 10_000),
