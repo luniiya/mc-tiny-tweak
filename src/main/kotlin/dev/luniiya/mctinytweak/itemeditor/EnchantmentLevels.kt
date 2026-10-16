@@ -14,4 +14,11 @@ object EnchantmentLevels {
         val q = query.trim()
         return q.isEmpty() || id.contains(q, ignoreCase = true) || name.contains(q, ignoreCase = true)
     }
+
+    /**
+     * Enchantments that fit the item come first, then the rest, each group in name order.
+     * The others still work when applied; they are just not what the item normally takes.
+     */
+    fun <T> compatibleFirst(entries: List<T>, compatible: (T) -> Boolean, name: (T) -> String): List<T> =
+        entries.sortedWith(compareBy<T>({ !compatible(it) }, { name(it).lowercase() }))
 }

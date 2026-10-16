@@ -21,6 +21,13 @@ class SmallHelpersTest {
     }
 
     @Test
+    fun `compatible enchantments come first, each group in name order`() {
+        val entries = listOf("Thorns" to false, "Sharpness" to true, "Aqua Affinity" to false, "Looting" to true, "breach" to false)
+        val ordered = EnchantmentLevels.compatibleFirst(entries, { it.second }, { it.first }).map { it.first }
+        assertEquals(listOf("Looting", "Sharpness", "Aqua Affinity", "breach", "Thorns"), ordered)
+    }
+
+    @Test
     fun `enchantment search matches id or name ignoring case`() {
         assertTrue(EnchantmentLevels.matches("", "minecraft:sharpness", "Sharpness"))
         assertTrue(EnchantmentLevels.matches("SHARP", "minecraft:sharpness", "Sharpness"))
