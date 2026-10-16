@@ -3,6 +3,13 @@
   "package": "dev.luniiya.mctinytweak.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
-  "client": ["client.KeyMappingMixin"],
-  "injectors": {"defaultRequire": 1}
+  "client": [
+    "client.KeyMappingMixin",
+    "client.keybinds.KeyBindsScreenAccessor",
+    "client.keybinds.KeyBindsScreenMixin",
+    "client.keybinds.KeyEntryAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
 }

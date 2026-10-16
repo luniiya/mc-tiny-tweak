@@ -21,5 +21,21 @@
   "screen.mc_tiny_tweak.enchantment_editor": "Enchantments",
   "screen.mc_tiny_tweak.enchantment_editor.level": "Level",
   "screen.mc_tiny_tweak.enchantment_editor.max": "Levels 1 to %s",
-  "screen.mc_tiny_tweak.raw_editor": "Raw Item SNBT"
+  "screen.mc_tiny_tweak.raw_editor": "Raw Item SNBT",
+  "controls.mc_tiny_tweak.key_search": "Search by key",
+  "controls.mc_tiny_tweak.key_search.listening": "Press a key",
+  "controls.mc_tiny_tweak.key_search.active": "Key: %s",
+  "controls.mc_tiny_tweak.key_search.tooltip": "Click, then press a key or mouse button to show every bind using it. Escape clears.",
+  "controls.mc_tiny_tweak.name_search": "Search name or category",
+  "controls.mc_tiny_tweak.mode": "Mode",
+  "controls.mc_tiny_tweak.mode.tablet": "Tablet",
+  "controls.mc_tiny_tweak.mode.mouse": "Mouse",
+  "controls.mc_tiny_tweak.mode.tablet.tooltip": "Break with Q and place with E.",
+  "controls.mc_tiny_tweak.mode.mouse.tooltip": "Break with left click and place with right click.",
+  "controls.mc_tiny_tweak.unbind_extras": "Unbind extras",
+  "controls.mc_tiny_tweak.unbind_extras.tooltip": "Unbind every keybind that the mod's saved defaults do not list.",
+  "controls.mc_tiny_tweak.unbind_extras.confirm": "Unbind %s keybinds that your saved defaults do not list? Reset restores them.",
+  "controls.mc_tiny_tweak.view_defaults": "View defaults",
+  "controls.mc_tiny_tweak.view_defaults.title": "Saved Default Keybinds",
+  "controls.mc_tiny_tweak.view_defaults.not_installed": "Not installed"
 }

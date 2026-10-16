@@ -91,3 +91,7 @@ reference. It is GPL-3.0, so its code is not copied here.
 Readable Minecraft source for reference comes from
 `./gradlew :1.21.11:genSources`. Keep decompiled source and other material
 that must not be published outside this repository.
+
+## Key Binds screen
+
+The Controls > Key Binds screen gets a key search (click it, then press a key or mouse button; Escape clears), a name or category search, a Tablet/Mouse toggle for attack and use, "Unbind extras" (unbinds every bind not listed in `default-options.txt`), and "View defaults" (a read-only list of the bundled binds). `KeyBindsScreen` inherits `addTitle`, so `KeyBindsScreenMixin` overrides it rather than injecting into it.
