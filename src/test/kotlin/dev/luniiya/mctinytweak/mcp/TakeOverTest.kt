@@ -19,6 +19,18 @@ class TakeOverTest {
     }
 
     @Test
+    fun `long running takeover stays active after recent input has expired`() {
+        val input = dev.luniiya.mctinytweak.client.mcp.AgentInput
+        val timestamp = input.javaClass.getDeclaredField("lastInputMillis").apply { isAccessible = true }
+        val original = timestamp.getLong(input)
+        try {
+            timestamp.setLong(input, 0)
+            assertFalse(input.isPlaying())
+            withAgent { assertTrue(input.isPlaying(), "Baritone can run longer than five minutes without direct key input") }
+        } finally { timestamp.setLong(input, original) }
+    }
+
+    @Test
     fun `the player's keys only stop working while the agent is in control`() {
         val forward = InputConstants.getKey("key.keyboard.w")
         assertFalse(AgentControl.blocksKey(forward))

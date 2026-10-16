@@ -1,5 +1,8 @@
 package dev.luniiya.mctinytweak.client.mcp
 
+import dev.luniiya.mctinytweak.mcp.MiningSafety
+import net.minecraft.core.Direction
+import net.minecraft.tags.FluidTags
 import dev.luniiya.mctinytweak.mcp.MiningTools
 import dev.luniiya.mctinytweak.mcp.ToolError
 import net.minecraft.client.Minecraft
@@ -17,6 +20,11 @@ object AgentMiningTools {
         if (hit.type != HitResult.Type.BLOCK) return
         val state = player.level().getBlockState(hit.blockPos)
         if (state.getDestroySpeed(player.level(), hit.blockPos) < 0) throw ToolError("The targeted block cannot be mined")
+        val lavaFaces = Direction.entries.filter { player.level().getFluidState(hit.blockPos.relative(it)).`is`(FluidTags.LAVA) }.toSet()
+        val waterAbove = player.level().getFluidState(hit.blockPos.above()).`is`(FluidTags.WATER)
+        if (MiningSafety.exposesLava(lavaFaces, waterAbove)) {
+            throw ToolError("Mining would expose lava (${lavaFaces.joinToString { it.serializedName }}). Inspect a safer route or protect the block with water first. Do not dig an unsafe ceiling.")
+        }
         val inventory = player.inventory
         val candidates = (0..35).map { slot ->
             val stack = inventory.getItem(slot)

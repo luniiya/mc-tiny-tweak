@@ -19,7 +19,7 @@ object AgentInput {
 
     /** True while the agent holds keys or sent input recently. */
     @JvmStatic
-    fun isPlaying() = heldCount > 0 || System.currentTimeMillis() - lastInputMillis < PLAYING_MILLIS
+    fun isPlaying() = AgentControl.agentInControl() || heldCount > 0 || System.currentTimeMillis() - lastInputMillis < PLAYING_MILLIS
 
     @Volatile
     var heldCount = 0

@@ -98,7 +98,10 @@ object GameTools {
                     Schema.integer("timeout_ms", "Maximum wait (default 30000).", min = 0, max = 60000),
                 ),
             ) {
-                val after = it.optInt("after_id", Mcp.chat.lastId().coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), 0..Int.MAX_VALUE).toLong()
+                val newest = Mcp.chat.lastId()
+                val requested = it.optInt("after_id", newest.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), 0..Int.MAX_VALUE).toLong()
+                // A game restart resets line ids; an old cursor must not hide every new incoming message.
+                val after = if (requested > newest) 0L else requested
                 val deadline = System.nanoTime() + it.optInt("timeout_ms", 30000, 0..60000) * 1_000_000L
                 var lines: List<dev.luniiya.mctinytweak.mcp.ChatLog.Line>
                 while (true) {
@@ -161,7 +164,7 @@ object GameTools {
             ) { craft(it.requireString("item"), it.optInt("times", 1, 1..64)) },
             McpTool("close_screen", "Closes the open screen or menu, such as the pause menu, an inventory or a chest.", Feature.INPUT) { closeScreen() },
             McpTool(
-                "baritone", "Needs take_over. Runs a Baritone command (without #), for example `mine diamond_ore`, `goto 100 64 -200`, `follow player Name`, `stop`. Baritone's replies are returned (they stay out of the player's chat).", Feature.BARITONE,
+                "baritone", "Needs take_over. Runs a Baritone command (without #), for example `mine diamond_ore`, `goto 100 64 -200`, `follow player Name`, `stop`. Baritone's replies are returned (they stay out of the player's chat). A refused route may imply danger or an obstacle: inspect before overriding it.", Feature.BARITONE,
                 Schema.obj(
                     Schema.string("command", "The Baritone command.", required = true),
                     Schema.integer("wait_ms", "How long to collect Baritone's replies (default 1000).", min = 0, max = 10_000),
@@ -246,6 +249,9 @@ object GameTools {
             addProperty("game_mode", minecraft.gameMode?.playerMode?.serializedName ?: "unknown")
             addProperty("on_ground", player.onGround())
             addProperty("in_water", player.isInWater)
+            addProperty("in_lava", player.isInLava)
+            addProperty("on_fire", player.isOnFire)
+            addProperty("fire_ticks", player.remainingFireTicks)
             addProperty("selected_slot", player.inventory.selectedSlot + 1)
             addProperty("held_item", describe(player.mainHandItem))
             addProperty("offhand_item", describe(player.offhandItem))

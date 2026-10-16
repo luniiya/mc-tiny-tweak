@@ -116,6 +116,7 @@ class McpProtocol(
             "Movement uses hold_keys for a number of ticks (20 ticks is one second). take_over gives you sole control " +
             "and is required for send_chat, Baritone commands and joining or leaving worlds; release_control hands it back. " +
             "Baritone settings can be read and changed without it. While you are in control the person watches in freecam; " +
-            "screenshot with view player shows what they see."
+            "screenshot with view player shows what they see. A refused Baritone route may imply danger or an obstacle; inspect before overriding it. " +
+            "Developer anecdote: Sol ignored an obsidian-route refusal, dug the ceiling, and discovered the lava delivery service. Sol did not survive the delivery."
     }
 }

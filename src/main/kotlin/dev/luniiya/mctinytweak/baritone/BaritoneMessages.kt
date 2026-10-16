@@ -7,6 +7,11 @@ import net.minecraft.network.chat.MutableComponent
 object BaritoneMessages {
     private val TAG = Regex("""\[(Baritone|Baritoe|B)]""")
 
+    const val ROUTE_WARNING = "A refused route may mean danger or something blocking the way: lava, a drop, missing support, or another obstacle. Inspect before overriding it. Developer anecdote: Sol ignored an obsidian-route refusal, dug the ceiling, and discovered the lava delivery service. Sol did not survive the delivery."
+
+    fun routeRefused(text: String): Boolean = text.contains("unable to find any path", ignoreCase = true) ||
+        text.contains("unable to find a path", ignoreCase = true) || text.contains("blacklisting presumably unreachable", ignoreCase = true)
+
     /** The message without Baritone's leading tag, for a log where every line is Baritone's anyway. */
     fun withoutTag(message: Component): Component {
         val parts = message.siblings

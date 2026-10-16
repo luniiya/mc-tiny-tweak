@@ -35,6 +35,20 @@ class ChatToolsTest {
     }
 
     @Test
+    fun `a cursor from before a game restart does not hide new chat`() {
+        val id = Mcp.events.create()
+        try {
+            Mcp.chat.add("<Player1> message after restart", wakeable = true)
+            Mcp.events.withSession(id) {
+                val result = GameTools.all.single { it.name == "wait_for_chat" }.call(JsonObject().apply {
+                    addProperty("after_id", Int.MAX_VALUE); addProperty("timeout_ms", 0)
+                })
+                assertTrue((result.content.single() as ToolResult.Content.Text).text.contains("message after restart"))
+            }
+        } finally { Mcp.events.remove(id) }
+    }
+
+    @Test
     fun `an agent can mute its own pending wake and anonymous waits are refused`() {
         val tool = GameTools.all.single { it.name == "wait_for_chat" }
         assertThrows(ToolError::class.java) { tool.call(JsonObject().apply { addProperty("timeout_ms", 0) }) }
