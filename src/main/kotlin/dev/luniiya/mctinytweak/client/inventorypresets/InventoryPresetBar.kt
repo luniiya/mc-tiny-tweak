@@ -2,7 +2,6 @@ package dev.luniiya.mctinytweak.client.inventorypresets
 
 import dev.luniiya.mctinytweak.client.itemeditor.ItemEditorSession
 import dev.luniiya.mctinytweak.inventorypresets.InventoryPresets
-import dev.luniiya.mctinytweak.mixin.client.freecam.AbstractContainerScreenAccessor
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents
 import net.fabricmc.fabric.api.client.screen.v1.Screens
 import net.minecraft.ChatFormatting
@@ -22,17 +21,21 @@ import net.minecraft.util.FormattedCharSequence
 import net.minecraft.world.item.ItemStack
 
 /**
- * A hotbar of [InventoryPresets.SIZE] whole-inventory presets under the survival inventory, only for operators.
+ * A hotbar of [InventoryPresets.SIZE] whole-inventory presets at the bottom of the survival inventory screen, only for operators.
  * Left click loads a preset, right click saves the current inventory into it.
  */
 class InventoryPresetBar(private val screen: InventoryScreen) :
     AbstractWidget(0, 0, WIDTH, HEIGHT, Component.translatable("screen.mc_tiny_tweak.inventory_presets")) {
     private val minecraft = Minecraft.getInstance()
 
+    init {
+        place()
+    }
+
+    /** Sits exactly where the HUD hotbar is: centered at the bottom of the screen. */
     private fun place() {
-        val container = screen as AbstractContainerScreenAccessor
-        x = container.`mc_tiny_tweak$getLeftPos`() + (container.`mc_tiny_tweak$getImageWidth`() - WIDTH) / 2
-        y = container.`mc_tiny_tweak$getTopPos`() + container.`mc_tiny_tweak$getImageHeight`() + 2
+        x = screen.width / 2 - WIDTH / 2
+        y = screen.height - HEIGHT
     }
 
     /** The preset slot under the mouse, or -1. */
