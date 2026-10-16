@@ -111,7 +111,7 @@ The burning overlay sits lower (`FireOverlay.EXTRA_DROP`) and shields held in fi
 
 The mod menu has a Tweaks screen. Its settings are saved in `config/mc_tiny_tweak.properties` (`TweakSettings`). Show armor is off by default: players render without armor, and a thin gray experience-bar style bar above their name fills one of four segments per worn piece in the material's color (`ArmorBar` picks colors, `ArmorBarShape` lays out the rectangles).
 
-To test with two players, run `./gradlew :1.21.11:runServer` (offline mode, in `run-server/`), then `runClient --args="--quickPlayMultiplayer localhost"` so it joins by itself (plain `runClient` stays on the title screen). Run `runClient2` as well: it starts as Tester2 in `run-client2/` and joins localhost by itself. Running the server means agreeing to the Minecraft EULA in `run-server/eula.txt`.
+To test with two players, run `./gradlew :1.21.11:runServer` (offline mode, in `run-server/`), then `runClient --args="--quickPlayMultiplayer localhost"` so it joins by itself (plain `runClient` stays on the title screen). Run `runClient2` as well: it starts as Tester2 in `run-client2/` and joins localhost by itself. Running the server means agreeing to the Minecraft EULA in `run-server/eula.txt`. `runClient` always plays as Player1, so operator status and player data stay the same across launches. To make a player an operator, add it to `run-server/ops.json` while the server is stopped (the server rewrites the file on stop), or enable RCON in `run-server/server.properties` bound to 127.0.0.1 and send `op <name>`.
 
 ## Hotbar
 

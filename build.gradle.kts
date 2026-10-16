@@ -28,6 +28,10 @@ dependencies {
 loom {
     runs {
         // Multiplayer testing: start runServer, then runClient and runClient2. Client 2 joins localhost by itself.
+        // A fixed name keeps operator status and player data across launches.
+        named("client") {
+            programArgs("--username", "Player1")
+        }
         named("server") {
             runDir("run-server")
         }
