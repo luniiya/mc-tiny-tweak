@@ -61,6 +61,14 @@ class PersonalDefaultsTest {
     }
 
     @Test
+    fun `creative hotbar save and load activators are unbound so X and C only pick hotbar slots`() {
+        // X and C are hotbar slots; with the load activator on X, pressing it in creative wiped the hotbar.
+        assertEquals("key.keyboard.x", PersonalDefaults.keybinds["key.hotbar.1"])
+        assertEquals("key.keyboard.unknown", PersonalDefaults.keybinds["key.loadToolbarActivator"])
+        assertEquals("key.keyboard.unknown", PersonalDefaults.keybinds["key.saveToolbarActivator"])
+    }
+
+    @Test
     fun `key mappings take their default from the personal defaults`() {
         val listed = KeyMapping("key.attack", InputConstants.Type.MOUSE, 0, KeyMapping.Category.MISC)
         assertEquals(InputConstants.getKey("key.keyboard.q"), listed.defaultKey)

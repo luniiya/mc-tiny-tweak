@@ -125,7 +125,7 @@ key_key.spectatorOutlines:key.keyboard.unknown
 key_key.spectatorHotbar:key.mouse.middle
 key_key.swapOffhand:key.keyboard.f
 key_key.saveToolbarActivator:key.keyboard.unknown
-key_key.loadToolbarActivator:key.keyboard.x
+key_key.loadToolbarActivator:key.keyboard.unknown
 key_key.advancements:key.keyboard.l
 key_key.quickActions:key.keyboard.unknown
 key_key.debug.overlay:key.keyboard.f3
