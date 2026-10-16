@@ -29,8 +29,15 @@ object InventoryPresetStore {
         return InventoryPresets.decode(raw(), registries).also { cache = registries to it }
     }
 
-    fun save(player: LocalPlayer, index: Int) {
-        val updated = presets(player).with(index, snapshot(player))
+    fun save(player: LocalPlayer, index: Int, name: String?) {
+        write(player, presets(player).with(index, snapshot(player), name))
+    }
+
+    fun rename(player: LocalPlayer, index: Int, name: String) {
+        write(player, presets(player).renamed(index, name))
+    }
+
+    private fun write(player: LocalPlayer, updated: InventoryPresets) {
         tag = updated.encode(player.registryAccess())
         cache = player.registryAccess() to updated
         try {
@@ -71,7 +78,7 @@ object InventoryPresetStore {
     private fun raw(): CompoundTag {
         tag?.let { return it }
         val read = try {
-            if (Files.exists(file)) NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap()) else InventoryPresets.bundled()
+            if (Files.exists(file)) NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap()) else CompoundTag()
         } catch (e: Exception) {
             McTinyTweak.logger.warn("Could not read {}, starting with no inventory presets", file, e)
             CompoundTag()

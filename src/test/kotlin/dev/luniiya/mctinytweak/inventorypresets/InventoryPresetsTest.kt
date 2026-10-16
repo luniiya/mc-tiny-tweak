@@ -103,4 +103,35 @@ class InventoryPresetsTest {
         assertFalse(InventoryPresets.getsStarterKit(GameType.CREATIVE, allowCommands = true))
         assertFalse(InventoryPresets.getsStarterKit(GameType.ADVENTURE, allowCommands = true))
     }
+
+    @Test
+    fun `names survive the file, stay through saving over, and go when the slot is cleared`() {
+        val named = InventoryPresets().with(2, mapOf("hotbar.0" to sword()), "  pvp kit  ")
+        assertEquals("pvp kit", named.name(2))
+        val back = InventoryPresets.decode(named.encode(registries), registries)
+        assertEquals("pvp kit", back.name(2))
+        assertTrue(InventoryPresets.sameSlots(named[2]!!, back[2]!!))
+        assertEquals("pvp kit", back.with(2, mapOf("hotbar.1" to ItemStack(Items.BOW))).name(2))
+        assertNull(back.with(2, emptyMap()).name(2))
+    }
+
+    @Test
+    fun `renaming trims, caps the length, and a blank name removes it`() {
+        val presets = InventoryPresets().with(0, mapOf("hotbar.0" to sword()))
+        assertNull(presets.name(0))
+        assertEquals("x".repeat(InventoryPresets.MAX_NAME_LENGTH), presets.renamed(0, "x".repeat(50)).name(0))
+        assertNull(presets.renamed(0, "mine").renamed(0, "   ").name(0))
+        // An empty slot has nothing to name.
+        assertNull(presets.renamed(5, "ghost").name(5))
+    }
+
+    @Test
+    fun `files saved before names existed still load`() {
+        // The bundled kit is in the old format: slots straight under the index.
+        val old = InventoryPresets.bundled()
+        assertTrue(old.getCompound("0").orElseThrow().contains("hotbar.0"))
+        val presets = InventoryPresets.decode(old, registries)
+        assertTrue(presets[0]!!["inventory.0"]!!.`is`(Items.ELYTRA))
+        assertNull(presets.name(0))
+    }
 }
