@@ -3,12 +3,15 @@ package dev.luniiya.mctinytweak.client.mcp
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import dev.luniiya.mctinytweak.baritone.BaritoneDefaults
+import dev.luniiya.mctinytweak.client.freecam.Freecam
 import dev.luniiya.mctinytweak.mcp.AgentControls
 import dev.luniiya.mctinytweak.mcp.McpSettings.Feature
 import dev.luniiya.mctinytweak.mcp.McpTool
 import dev.luniiya.mctinytweak.mcp.Schema
 import dev.luniiya.mctinytweak.mcp.Schema.optDouble
 import dev.luniiya.mctinytweak.mcp.Schema.optInt
+import dev.luniiya.mctinytweak.mcp.Schema.optString
 import dev.luniiya.mctinytweak.mcp.Schema.requireDouble
 import dev.luniiya.mctinytweak.mcp.Schema.requireString
 import dev.luniiya.mctinytweak.mcp.Schema.stringList
@@ -50,8 +53,15 @@ object GameTools {
             McpTool("get_inventory", "Every non-empty inventory slot. Slots 0-8 are the hotbar, 9-35 the main inventory, 36-39 armor (feet to head) and 40 the offhand.", Feature.STATE) { getInventory() },
             McpTool(
                 "screenshot", "A PNG of what the game shows right now.", Feature.SCREENSHOT,
-                Schema.obj(Schema.integer("downscale", "Divide the window size by this to save tokens (default 2).", min = 1, max = 4)),
-            ) { screenshot(it.optInt("downscale", 2, 1..4)) },
+                Schema.obj(
+                    Schema.integer("downscale", "Divide the window size by this to save tokens (default 2).", min = 1, max = 4),
+                    Schema.string("view", "\"agent\" (default) shows your own eyes. \"player\" shows what the person sees, which is their freecam while you have taken over."),
+                ),
+            ) {
+                val view = it.optString("view") ?: "agent"
+                if (view != "agent" && view != "player") throw ToolError("view must be agent or player")
+                screenshot(it.optInt("downscale", 2, 1..4), playerView = view == "player")
+            },
             McpTool(
                 "read_chat", "Chat lines with their ids, oldest first, including command feedback and Baritone messages. Pass the last id you saw to get only newer lines.", Feature.CHAT_READ,
                 Schema.obj(
@@ -104,6 +114,21 @@ object GameTools {
                 ),
             ) { baritone(it.requireString("command"), it.optInt("wait_ms", 1000, 0..10_000)) },
             McpTool("baritone_status", "Whether Baritone is pathing, which process is in control (mining, following...) and its goal.", Feature.BARITONE) { baritoneStatus() },
+            McpTool(
+                "baritone_settings", "Lists Baritone settings as `name (type) = value [default]`. Without a query, lists only the ones changed from the mod's defaults. Works without take_over.", Feature.BARITONE,
+                Schema.obj(Schema.string("query", "Words that must all appear in the setting name, for example `parkour` or `allow break`.")),
+            ) { baritoneSettings(it.optString("query")) },
+            McpTool(
+                "baritone_set_setting", "Changes one Baritone setting and saves it, for example name `allowParkour` value `true`, or `blocksToAvoid` `stone,dirt`. Works without take_over.", Feature.BARITONE,
+                Schema.obj(Schema.string("name", "The setting name.", required = true), Schema.string("value", "The new value as text.", required = true)),
+            ) { baritoneSetSetting(it.requireString("name"), it.requireString("value")) },
+            McpTool(
+                "baritone_reset_settings", "Puts every Baritone setting back to MC Tiny Tweak's Baritone defaults (Baritone's own where the mod has none).", Feature.BARITONE,
+            ) {
+                requireBaritone()
+                onClient { BaritoneSettings.resetToModDefaults() }
+                ToolResult.text("Baritone settings are back to the mod's defaults")
+            },
             McpTool(
                 "take_over", "Takes sole control of the player: the person's keyboard and mouse stop working in game until release_control, or until they take control back from the mod menu. Needed for send_chat, Baritone and joining or leaving worlds.", Feature.TAKE_OVER,
             ) { onClient { AgentControl.takeOver() }; ToolResult.text("You are in control") },
@@ -188,7 +213,22 @@ object GameTools {
         }))
     }
 
-    private fun screenshot(downscale: Int): ToolResult {
+    private fun screenshot(downscale: Int, playerView: Boolean): ToolResult {
+        // The agent sees through its own eyes, not the player's freecam, unless it asks for the player's view.
+        if (!playerView && onClient { Freecam.shown() }) {
+            val start = Freecam.frames
+            Freecam.screenshotView = true
+            val deadline = System.currentTimeMillis() + 1000
+            while (Freecam.frames < start + 2 && System.currentTimeMillis() < deadline) Thread.sleep(5)
+        }
+        try {
+            return captureScreenshot(downscale)
+        } finally {
+            Freecam.screenshotView = false
+        }
+    }
+
+    private fun captureScreenshot(downscale: Int): ToolResult {
         val png = CompletableFuture<ByteArray>()
         val size = onClient { minecraft ->
             val target = minecraft.mainRenderTarget
@@ -253,6 +293,35 @@ object GameTools {
         if (!known) throw ToolError("Baritone does not know the command `$text`. Try `help`." + feedbackSince(before, 0))
         return ToolResult.text("Ran #$text" + feedbackSince(before, waitMillis))
     }
+
+    private fun requireBaritone() {
+        if (!BaritoneBridge.installed) throw ToolError("Baritone is not installed in this game")
+    }
+
+    private fun baritoneSettings(query: String?): ToolResult {
+        requireBaritone()
+        val entries = onClient { BaritoneSettings.entries() }
+            .filter { if (query.isNullOrBlank()) it.modified else BaritoneDefaults.matches(it.name, query) }
+        if (entries.isEmpty()) return ToolResult.text(if (query.isNullOrBlank()) "Every setting has the mod's default" else "No setting matches `$query`")
+        val shown = entries.take(MAX_SETTINGS)
+        val more = if (entries.size > shown.size) "\n... ${entries.size - shown.size} more, narrow the query" else ""
+        return ToolResult.text(shown.joinToString("\n") { "${it.name} (${it.type}) = ${it.value} [${it.default}]" } + more)
+    }
+
+    private fun baritoneSetSetting(name: String, value: String): ToolResult {
+        requireBaritone()
+        val entry = onClient {
+            try {
+                BaritoneSettings.set(name, value)
+            } catch (e: IllegalArgumentException) {
+                throw ToolError(e.message ?: "Invalid setting")
+            }
+            BaritoneSettings.entry(name)
+        } ?: throw ToolError("Unknown Baritone setting: $name")
+        return ToolResult.text("${entry.name} = ${entry.value}")
+    }
+
+    private const val MAX_SETTINGS = 60
 
     private fun baritoneStatus(): ToolResult {
         if (!BaritoneBridge.installed) throw ToolError("Baritone is not installed in this game")

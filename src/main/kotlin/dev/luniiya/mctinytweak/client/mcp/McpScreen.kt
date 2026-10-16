@@ -1,5 +1,6 @@
 package dev.luniiya.mctinytweak.client.mcp
 
+import dev.luniiya.mctinytweak.client.baritone.BaritoneSettingsScreen
 import dev.luniiya.mctinytweak.mcp.McpSettings.Feature
 import net.minecraft.ChatFormatting
 import net.minecraft.client.gui.GuiGraphics
@@ -65,7 +66,15 @@ class McpScreen(private val parent: Screen?) : Screen(Component.translatable("sc
             if (index % 2 == 1) y += ROW
         }
         if (Feature.entries.size % 2 == 1) y += ROW
-        y += 18
+        y += 4
+        val baritone = addRenderableWidget(
+            Button.builder(Component.translatable("screen.mc_tiny_tweak.baritone")) { minecraft.setScreen(BaritoneSettingsScreen(this)) }
+                .bounds(left, y, wide, 20)
+                .tooltip(Tooltip.create(Component.translatable(if (BaritoneBridge.installed) "screen.mc_tiny_tweak.baritone.tooltip" else "screen.mc_tiny_tweak.baritone.missing")))
+                .build(),
+        )
+        baritone.active = BaritoneBridge.installed
+        y += ROW + 16
 
         val copy = addRenderableWidget(
             Button.builder(Component.translatable(if (copied) "screen.mc_tiny_tweak.mcp.copied" else "screen.mc_tiny_tweak.mcp.copy")) {

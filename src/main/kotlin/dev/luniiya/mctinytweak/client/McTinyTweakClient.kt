@@ -2,11 +2,17 @@ package dev.luniiya.mctinytweak.client
 
 import com.mojang.blaze3d.platform.InputConstants
 import dev.luniiya.mctinytweak.McTinyTweak
+import dev.luniiya.mctinytweak.client.freecam.AgentStatusCard
+import dev.luniiya.mctinytweak.client.freecam.Freecam
+import dev.luniiya.mctinytweak.client.freecam.FreecamHud
 import dev.luniiya.mctinytweak.client.freelook.Freelook
 import dev.luniiya.mctinytweak.client.mcp.AgentInput
+import dev.luniiya.mctinytweak.client.mcp.BaritoneBridge
+import dev.luniiya.mctinytweak.client.mcp.BaritoneSettings
 import dev.luniiya.mctinytweak.client.mcp.Mcp
 import dev.luniiya.mctinytweak.client.tweaks.Tweaks
 import net.fabricmc.api.ClientModInitializer
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.minecraft.client.KeyMapping
@@ -27,14 +33,30 @@ object McTinyTweakClient : ClientModInitializer {
     /** Hold to look around without turning. Defaults to middle click (pick block moves to P). */
     val freelookKey: KeyMapping = Freelook.keyMapping(category)
 
+    /** Turns freecam on and off. */
+    val freecamKey: KeyMapping = Freecam.toggleKey(category)
+
+    /** While an agent plays, swaps between the freecam and the agent's eyes. */
+    val agentViewKey: KeyMapping = Freecam.agentViewKey(category)
+
     override fun onInitializeClient() {
         Tweaks.load()
         KeyBindingHelper.registerKeyBinding(openMenuKey)
         KeyBindingHelper.registerKeyBinding(freelookKey)
+        KeyBindingHelper.registerKeyBinding(freecamKey)
+        KeyBindingHelper.registerKeyBinding(agentViewKey)
+        AgentStatusCard.register()
+        FreecamHud.register()
         Mcp.load()
+        ClientLifecycleEvents.CLIENT_STARTED.register {
+            if (BaritoneBridge.installed) BaritoneSettings.applyModDefaultsOnce()
+        }
         // Before vanilla reads key states, so agent-held keys count for the whole tick.
         ClientTickEvents.START_CLIENT_TICK.register(AgentInput::tick)
         ClientTickEvents.END_CLIENT_TICK.register { client ->
+            while (freecamKey.consumeClick()) Freecam.toggle()
+            while (agentViewKey.consumeClick()) Freecam.toggleAgentView()
+            Freecam.tick(client)
             Freelook.tick(client, freelookKey)
             while (openMenuKey.consumeClick()) {
                 if (client.screen == null) client.setScreen(ModMenuScreen(null))

@@ -103,6 +103,23 @@ The Controls > Key Binds screen gets a key search (click it, then press a key or
 
 Hold the freelook key (middle click by default, with pick block moved to P; sprint is on Z in the personal defaults) to look around while the player keeps facing and moving the same way. First person switches to the back view while held and returns on release. `FreelookCamera` holds the tested logic. `MouseHandlerMixin` sends mouse movement to it instead of the player, and `CameraMixin` points the camera along it. Written from scratch with Celibistrial's AGPL Freelook mod as a behavior reference only.
 
+## Freecam
+
+Freecam (F7, or Mod menu > Freecam) flies the view away from the player. It is on while the toggle is on or an
+agent has taken over, and off only when both are off. While an agent plays, R swaps between the freecam and the
+agent's eyes, and a tooltip-style card in the top right shows the agent's last tool call, Baritone process, health
+and food. Freecam hides the hand, crosshair, hotbar and the player's bars; agent view shows them. Movement reads the
+physical keys (`InputConstants.isKeyDown`), because key mappings are blocked while freecam holds the player's input.
+`CameraFreecamMixin` moves the camera at the end of `Camera.setup` and marks it detached so the body renders.
+Agent screenshots show the agent's eyes for two frames unless they pass `view: "player"`.
+
+## Baritone settings
+
+Mod menu > MCP > Baritone settings lists every Baritone setting with search. `mc_tiny_tweak/baritone-defaults.txt`
+holds the mod's own Baritone defaults: applied once per instance (marker file in the config folder) and again by
+Reset. Agents use `baritone_settings`, `baritone_set_setting` and `baritone_reset_settings`, without take over.
+On/off settings only accept true or false, since Baritone reads anything else as false.
+
 ## Visual tweaks
 
 The burning overlay sits lower (`FireOverlay.EXTRA_DROP`) and shields held in first person render at 60% opacity (`ShieldOpacity.OPACITY`); tune either constant. Shields share the banner pattern code with banners, so `ShieldSpecialRendererMixin` flags a held shield while it submits and `BannerRendererMixin` only fades layers while that flag is set.

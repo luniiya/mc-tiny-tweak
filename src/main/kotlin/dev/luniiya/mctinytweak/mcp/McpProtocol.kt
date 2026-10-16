@@ -107,6 +107,8 @@ class McpProtocol(
         const val INSTRUCTIONS = "Controls a running Minecraft client as its player. Start with get_state, and take a screenshot " +
             "to see the game. Commands and their feedback go through run_command; read_chat shows what others say. " +
             "Movement uses hold_keys for a number of ticks (20 ticks is one second). take_over gives you sole control " +
-            "and is required for send_chat, Baritone and joining or leaving worlds; release_control hands it back."
+            "and is required for send_chat, Baritone commands and joining or leaving worlds; release_control hands it back. " +
+            "Baritone settings can be read and changed without it. While you are in control the person watches in freecam; " +
+            "screenshot with view player shows what they see."
     }
 }

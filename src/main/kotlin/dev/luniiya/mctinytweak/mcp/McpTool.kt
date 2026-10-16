@@ -75,6 +75,9 @@ object Schema {
     fun JsonObject.requireString(name: String): String =
         get(name)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString ?: throw ToolError("Missing text argument: $name")
 
+    fun JsonObject.optString(name: String): String? =
+        get(name)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+
     fun JsonObject.optInt(name: String, default: Int, range: IntRange): Int {
         val value = get(name)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asDouble ?: return default
         if (value % 1.0 != 0.0 || value.toLong() !in range.first..range.last) throw ToolError("$name must be a whole number between ${range.first} and ${range.last}")

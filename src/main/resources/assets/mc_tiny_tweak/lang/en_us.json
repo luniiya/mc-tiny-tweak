@@ -1,6 +1,8 @@
 {
   "key.category.mc_tiny_tweak.main": "MC Tiny Tweak",
   "key.mc_tiny_tweak.freelook": "Freelook (hold)",
+  "key.mc_tiny_tweak.freecam": "Toggle freecam",
+  "key.mc_tiny_tweak.agent_view": "Agent view (while an agent plays)",
   "key.mc_tiny_tweak.open_menu": "Open menu",
   "screen.mc_tiny_tweak.menu": "MC Tiny Tweak",
   "screen.mc_tiny_tweak.tweaks": "Tweaks",
@@ -84,5 +86,23 @@
   "notice.mc_tiny_tweak.mcp.took_over": "An agent took over. Open the mod menu > MCP to take back control.",
   "notice.mc_tiny_tweak.mcp.released": "The agent gave control back to you.",
   "notice.mc_tiny_tweak.mcp.player_took_back": "You took back control from the agent.",
-  "notice.mc_tiny_tweak.mcp.action": "Agent: %s"
+  "notice.mc_tiny_tweak.mcp.action": "Agent: %s",
+  "screen.mc_tiny_tweak.freecam": "Freecam",
+  "screen.mc_tiny_tweak.freecam.tooltip": "Fly the camera away from your player. Also on while an agent has taken over. Key: %s",
+  "notice.mc_tiny_tweak.freecam.on": "Freecam on",
+  "notice.mc_tiny_tweak.freecam.off": "Freecam off",
+  "hud.mc_tiny_tweak.agent.title": "Agent playing",
+  "hud.mc_tiny_tweak.agent.last": "Last: %s",
+  "hud.mc_tiny_tweak.agent.baritone": "Baritone: %s",
+  "hud.mc_tiny_tweak.agent.vitals": "Health %s  Food %s",
+  "hud.mc_tiny_tweak.agent.to_agent": "%s: agent view",
+  "hud.mc_tiny_tweak.agent.to_freecam": "%s: freecam",
+  "screen.mc_tiny_tweak.baritone": "Baritone settings",
+  "screen.mc_tiny_tweak.baritone.tooltip": "Every Baritone setting. Agents can change them too.",
+  "screen.mc_tiny_tweak.baritone.missing": "Baritone is not installed.",
+  "screen.mc_tiny_tweak.baritone.search": "Search settings",
+  "screen.mc_tiny_tweak.baritone.reset": "Reset to mod defaults",
+  "screen.mc_tiny_tweak.baritone.reset.tooltip": "Puts every setting back to MC Tiny Tweak's Baritone defaults.",
+  "screen.mc_tiny_tweak.baritone.reset.confirm": "Every Baritone setting goes back to MC Tiny Tweak's defaults, or Baritone's own where the mod has none.",
+  "screen.mc_tiny_tweak.baritone.setting.tooltip": "%s\nType: %s\nDefault: %s"
 }

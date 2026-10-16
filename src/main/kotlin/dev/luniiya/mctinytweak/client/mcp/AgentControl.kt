@@ -3,6 +3,7 @@ package dev.luniiya.mctinytweak.client.mcp
 import com.mojang.blaze3d.platform.InputConstants
 import dev.luniiya.mctinytweak.client.McTinyTweakClient
 import dev.luniiya.mctinytweak.client.Notices
+import dev.luniiya.mctinytweak.client.freecam.Freecam
 import dev.luniiya.mctinytweak.mixin.client.mcp.KeyMappingAccessor
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
@@ -10,7 +11,7 @@ import net.minecraft.network.chat.Component
 
 /**
  * Who controls the player. While the agent has taken over, the keyboard and mouse no longer move or act,
- * except for the mod menu key, so the player can always open Mod menu > MCP and take control back.
+ * except for the mod menu, freecam and agent view keys, so the player can always open Mod menu > MCP and take control back.
  */
 object AgentControl {
     @Volatile
@@ -21,8 +22,16 @@ object AgentControl {
 
     /** True when a real key event on [key] must be ignored. */
     @JvmStatic
-    fun blocksKey(key: InputConstants.Key): Boolean =
-        agent && key != (McTinyTweakClient.openMenuKey as KeyMappingAccessor).`mc_tiny_tweak$getKey`()
+    fun blocksKey(key: InputConstants.Key): Boolean = when {
+        agent -> exemptKeys().none { boundKey(it) == key }
+        Freecam.holdsPlayerInput() -> Freecam.heldMappings(Minecraft.getInstance()).any { boundKey(it) == key }
+        else -> false
+    }
+
+    /** Keys that keep working while the agent plays: the mod menu, freecam and the agent view. */
+    private fun exemptKeys() = listOf(McTinyTweakClient.openMenuKey, McTinyTweakClient.freecamKey, McTinyTweakClient.agentViewKey)
+
+    private fun boundKey(mapping: KeyMapping) = (mapping as KeyMappingAccessor).`mc_tiny_tweak$getKey`()
 
     /** Client thread only. */
     fun takeOver() {

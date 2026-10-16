@@ -19,6 +19,10 @@ object BaritoneBridge {
         BaritoneAPI.getProvider().primaryBaritone.pathingBehavior.cancelEverything()
     }
 
+    /** The name of the process Baritone runs, such as Mine, or null when it is idle. Client thread only. */
+    fun activeProcess(): String? =
+        BaritoneAPI.getProvider().primaryBaritone.pathingControlManager.mostRecentInControl().map { it.displayName() }.orElse(null)
+
     /** What Baritone is doing right now. Client thread only. */
     fun status(): String {
         val baritone = BaritoneAPI.getProvider().primaryBaritone

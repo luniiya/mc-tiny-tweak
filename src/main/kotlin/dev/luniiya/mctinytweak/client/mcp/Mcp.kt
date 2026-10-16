@@ -2,6 +2,7 @@ package dev.luniiya.mctinytweak.client.mcp
 
 import dev.luniiya.mctinytweak.McTinyTweak
 import dev.luniiya.mctinytweak.client.Notices
+import dev.luniiya.mctinytweak.client.freecam.AgentStatusCard
 import dev.luniiya.mctinytweak.mcp.ChatLog
 import dev.luniiya.mctinytweak.mcp.McpHttpServer
 import dev.luniiya.mctinytweak.mcp.McpProtocol
@@ -91,7 +92,9 @@ object Mcp {
             allowed = { settings.allows(it) },
             onError = { tool, e -> McTinyTweak.logger.warn("MCP tool {} failed", tool, e) },
             onCall = { tool, arguments ->
-                if (settings.showActions) Notices.show(Component.translatable("notice.mc_tiny_tweak.mcp.action", ToolCallSummary.describe(tool.name, arguments)))
+                val summary = ToolCallSummary.describe(tool.name, arguments)
+                AgentStatusCard.lastAction = summary
+                if (settings.showActions) Notices.show(Component.translatable("notice.mc_tiny_tweak.mcp.action", summary))
             },
         )
         val created = McpHttpServer(token, protocol::handle)
