@@ -97,7 +97,7 @@ that must not be published outside this repository.
 
 ## Key Binds screen
 
-The Controls > Key Binds screen gets a key search (click it, then press a key or mouse button; Escape clears), a name or category search, a Tablet/Mouse toggle for attack and use, "Unbind extras" (unbinds every bind not listed in `default-options.txt`), and "View defaults" (a read-only list of the bundled binds). `KeyBindsScreen` inherits `addTitle`, so `KeyBindsScreenMixin` overrides it rather than injecting into it.
+The Controls > Key Binds screen gets a key search (click it, then press a key or mouse button; Escape clears), a name or category search, a Tablet/Mouse toggle for attack, use and freelook (tablet: Q, E, hold left click; mouse: left click, right click, hold left ctrl), "Unbind extras" (unbinds every bind not listed in `default-options.txt`), and "View defaults" (a read-only list of the bundled binds). `KeyBindsScreen` inherits `addTitle`, so `KeyBindsScreenMixin` overrides it rather than injecting into it.
 
 ## Freelook
 

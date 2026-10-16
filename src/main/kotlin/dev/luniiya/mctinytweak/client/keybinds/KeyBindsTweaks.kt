@@ -1,6 +1,7 @@
 package dev.luniiya.mctinytweak.client.keybinds
 
 import com.mojang.blaze3d.platform.InputConstants
+import dev.luniiya.mctinytweak.client.McTinyTweakClient
 import dev.luniiya.mctinytweak.defaults.PersonalDefaults
 import dev.luniiya.mctinytweak.keybinds.KeyBindRules
 import dev.luniiya.mctinytweak.keybinds.KeyBindRules.InputMode
@@ -85,6 +86,7 @@ class KeyBindsTweaks(private val screen: KeyBindsScreen) {
                 .create(0, 0, TOOL_WIDTH, 20, Component.translatable("controls.mc_tiny_tweak.mode")) { _, mode ->
                     options.keyAttack.setKey(InputConstants.getKey(mode.attack))
                     options.keyUse.setKey(InputConstants.getKey(mode.use))
+                    McTinyTweakClient.freelookKey.setKey(InputConstants.getKey(mode.freelook))
                     refreshList()
                 },
         )
