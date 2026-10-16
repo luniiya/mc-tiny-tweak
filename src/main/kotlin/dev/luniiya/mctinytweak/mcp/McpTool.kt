@@ -72,6 +72,41 @@ object Schema {
         addProperty("description", description)
     }
 
+    /** Enforce advertised schemas before a tool can send input or packets. */
+    fun validate(arguments: JsonObject, schema: JsonObject) {
+        schema.getAsJsonArray("required")?.forEach {
+            if (!arguments.has(it.asString)) throw ToolError("Missing argument: ${it.asString}")
+        }
+        val properties = schema.getAsJsonObject("properties") ?: return
+        for ((name, value) in arguments.entrySet()) {
+            val property = properties.getAsJsonObject(name) ?: continue
+            validateValue(name, value, property)
+        }
+    }
+
+    private fun validateValue(name: String, value: com.google.gson.JsonElement, schema: JsonObject) {
+        val primitive = value.takeIf { it.isJsonPrimitive }?.asJsonPrimitive
+        val type = schema.get("type")?.asString
+        val valid = when (type) {
+            "string" -> primitive?.isString == true
+            "boolean" -> primitive?.isBoolean == true
+            "number", "integer" -> primitive?.isNumber == true && primitive.asDouble.isFinite() &&
+                (type != "integer" || primitive.asDouble % 1.0 == 0.0)
+            "array" -> value.isJsonArray
+            "object" -> value.isJsonObject
+            else -> true
+        }
+        if (!valid) throw ToolError("$name must be $type")
+        if (type == "number" || type == "integer") {
+            val number = value.asDouble
+            if (schema.get("minimum")?.let { number < it.asDouble } == true ||
+                schema.get("maximum")?.let { number > it.asDouble } == true) throw ToolError("$name is out of range")
+        }
+        if (type == "array") schema.getAsJsonObject("items")?.let { itemSchema ->
+            value.asJsonArray.forEach { validateValue("$name item", it, itemSchema) }
+        }
+    }
+
     fun JsonObject.requireString(name: String): String =
         get(name)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString ?: throw ToolError("Missing text argument: $name")
 

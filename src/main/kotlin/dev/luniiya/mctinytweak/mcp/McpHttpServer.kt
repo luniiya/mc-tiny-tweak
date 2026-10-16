@@ -37,7 +37,7 @@ class McpHttpServer(
     fun start(firstPort: Int, attempts: Int = 10): Int {
         check(socket == null) { "Already running" }
         var lastError: IOException? = null
-        for (candidate in firstPort until firstPort + attempts) {
+        for (candidate in portsToTry(firstPort, attempts)) {
             val server = ServerSocket()
             try {
                 server.bind(InetSocketAddress(InetAddress.getLoopbackAddress(), candidate))
@@ -145,6 +145,14 @@ class McpHttpServer(
 
     companion object {
         const val PATH = "/mcp"
+
+        /** Port searches stop at the TCP limit, including when the attempt count would overflow Int. */
+        internal fun portsToTry(firstPort: Int, attempts: Int): IntRange {
+            require(firstPort in 0..65535) { "Invalid TCP port: $firstPort" }
+            require(attempts > 0) { "Port attempts must be positive" }
+            return firstPort..minOf(65535L, firstPort.toLong() + attempts - 1).toInt()
+        }
+
         private const val HEADER_END = "\r\n\r\n"
         private const val MAX_HEADER_BYTES = 16 * 1024
         private const val MAX_BODY_BYTES = 1024 * 1024

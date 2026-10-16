@@ -71,6 +71,7 @@ class McpProtocol(
         if (!allowed(tool.feature)) return result(id, ToolResult.error("$name is turned off in the game's MCP settings").toJson())
         val arguments = params.get("arguments")?.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
         val outcome = try {
+            Schema.validate(arguments, tool.inputSchema)
             onCall(tool, arguments)
             tool.call(arguments)
         } catch (e: ToolError) {

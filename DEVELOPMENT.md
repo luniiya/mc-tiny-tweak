@@ -22,6 +22,14 @@ page. Start with a test world. Rebuild and replace the JAR when testing a change
 The `runClient` task starts a separate development instance with dependencies
 already loaded, so it is faster for day-to-day coding.
 
+To play as a separate agent without sharing client configuration, use:
+
+```sh
+./gradlew :1.21.11:runClient -PmcUsername=Sol -PmcRunDir=run-sol
+```
+
+`mcUsername` defaults to Player1 and `mcRunDir` defaults to run.
+
 ## Personal default options
 
 `src/main/resources/mc_tiny_tweak/default-options.txt` is the reference
@@ -152,7 +160,7 @@ The hotbar is split in two: slots 1-4 (X C V B in the personal binds) are separa
 
 The mod runs a Model Context Protocol server so an AI agent on this computer can play the game. It is on by default in every instance and has its own MCP screen in the mod menu: a main switch, one switch per kind of access (game state, screenshots, read chat, send chat, commands, movement and keys, Baritone), "Copy setup command" and "New token". Settings are saved per instance in `config/mc_tiny_tweak_mcp.properties`, and the token in `config/mc_tiny_tweak_mcp_token.txt`.
 
-- Transport: Streamable HTTP with plain JSON replies on `http://127.0.0.1:25599/mcp`. When the port is taken (for example by a second client), the next free one up to 25608 is used; the MCP screen shows the actual one. `McpHttpServer` is written on sockets because the JDK's httpserver module is missing from some game runtimes.
+- Transport: Streamable HTTP with plain JSON replies on `http://127.0.0.1:25599/mcp`. When the port is taken (for example by a second client), the next free one up to 25698 is used; the MCP screen shows the actual one. `McpHttpServer` is written on sockets because the JDK's httpserver module is missing from some game runtimes.
 - Security: loopback only, a bearer token on every request, and requests with a foreign `Origin` or `Host` are refused so web pages cannot reach it.
 - Connect Claude Code with the copied command, which looks like `claude mcp add --transport http minecraft http://127.0.0.1:25599/mcp --header "Authorization: Bearer <token>"`.
 - Tools (`GameTools`): `get_state`, `get_inventory`, `screenshot`, `read_chat`, `send_chat`, `run_command` (returns the chat feedback), `hold_keys`, `press_key`, `release_keys`, `look`, `look_at`, `select_slot`, `close_screen`, `baritone`, `baritone_status`, `take_over`, `release_control`, `list_servers`, `join_server`, `list_worlds`, `open_world` and `leave_world`. The world tools also work from the title screen. Switched off features drop their tools from `tools/list`.
@@ -162,3 +170,15 @@ The mod runs a Model Context Protocol server so an AI agent on this computer can
 - Baritone is optional: `modCompileOnly` against Baritone's API, and `BaritoneBridge` only touches it when the `baritone` mod is loaded. Dev runs include Baritone 1.17.0 (the 1.21.11 build) from its GitHub release, plus its nether pathfinder, which Baritone nests and dev runs do not load.
 
 To try it by hand, see the JSON-RPC calls in `McpProtocolTest`; `initialize`, `tools/list` and `tools/call` are plain POSTs.
+
+Container tools: `get_container` lists every menu slot, the cursor stack, and each player inventory slot mapping. `click_slot` uses these menu slot ids and the returned `container_id` to reject stale menus. It supports pickup, quick_move (shift-click to deposit/withdraw), hotbar/offhand swap, and throw. It requires take_over.
+
+`get_state` also works before joining and after disconnecting, reporting the screen and connection state. In a world it reports death and remaining air. `respawn` requires take_over and a dead player, stops held keys and Baritone, and sends the same request as the death screen button. In hardcore the server decides spectating behavior. Tool arguments are checked against their advertised schemas before execution; missing required arguments, wrong types and out-of-range values return tool errors.
+
+Run read-only live transport checks against an isolated running client with all MCP features enabled:
+
+```sh
+python3 scripts/mcp-smoke-test.py versions/1.21.11/run-sol
+```
+
+The script reads the token locally without printing it and checks negotiation, discovery, argument rejection, concurrent requests and HTTP access protection. Unit tests run separately with Gradle.

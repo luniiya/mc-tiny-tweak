@@ -48,7 +48,8 @@ loom {
         // Multiplayer testing: start runServer, then runClient and runClient2. Client 2 joins localhost by itself.
         // A fixed name keeps operator status and player data across launches.
         named("client") {
-            programArgs("--username", "Player1")
+            programArgs("--username", providers.gradleProperty("mcUsername").getOrElse("Player1"))
+            runDir(providers.gradleProperty("mcRunDir").getOrElse("run"))
         }
         named("server") {
             runDir("run-server")

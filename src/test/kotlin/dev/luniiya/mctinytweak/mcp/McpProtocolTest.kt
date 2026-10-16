@@ -74,6 +74,16 @@ class McpProtocolTest {
     }
 
     @Test
+    fun `malformed arguments are refused before announcing or executing tools`() {
+        for (arguments in listOf("{}", "{\"text\":true}", "{\"text\":null}", "{\"text\":[\"hi\"]}")) {
+            val result = call("tools/call", """{"name":"echo","arguments":$arguments}""")["result"].asJsonObject
+            assertTrue(result["isError"].asBoolean)
+        }
+        assertTrue(calls.isEmpty())
+        assertTrue(errors.isEmpty())
+    }
+
+    @Test
     fun `image results carry base64 data and a mime type`() {
         val json = ToolResult(listOf(ToolResult.Content.Image("AAAA", "image/png"))).toJson()
         val item = json["content"].asJsonArray[0].asJsonObject

@@ -89,5 +89,14 @@ class McpHttpServerTest {
         }
     }
 
+    @Test
+    fun `port searches stop at 65535 without overflow or invalid socket addresses`() {
+        assertEquals(65530..65535, McpHttpServer.portsToTry(65530, 100))
+        assertEquals(65535..65535, McpHttpServer.portsToTry(65535, Int.MAX_VALUE))
+        assertEquals(25599..25698, McpHttpServer.portsToTry(25599, 100))
+        for (port in listOf(-1, 65536)) assertThrows(IllegalArgumentException::class.java) { McpHttpServer.portsToTry(port, 1) }
+        assertThrows(IllegalArgumentException::class.java) { McpHttpServer.portsToTry(25599, 0) }
+    }
+
     private fun freePort() = ServerSocket(0).use { it.localPort }
 }

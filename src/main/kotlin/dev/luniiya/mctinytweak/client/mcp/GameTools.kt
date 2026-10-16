@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import dev.luniiya.mctinytweak.baritone.BaritoneDefaults
 import dev.luniiya.mctinytweak.client.freecam.Freecam
 import dev.luniiya.mctinytweak.mcp.AgentControls
+import dev.luniiya.mctinytweak.mcp.ContainerClicks
 import dev.luniiya.mctinytweak.mcp.CraftingFit
 import dev.luniiya.mctinytweak.mcp.McpSettings.Feature
 import dev.luniiya.mctinytweak.mcp.McpTool
@@ -58,8 +59,18 @@ object GameTools {
 
     val all: List<McpTool> by lazy {
         listOf(
-            McpTool("get_state", "The player's position, rotation, health, hunger, game mode, held item, open screen, what the crosshair targets, and nearby players.", Feature.STATE) { getState() },
+            McpTool("get_state", "Connection and screen state, plus player position, rotation, health, hunger, game mode, held items, death state, crosshair target and nearby players. Also works on the title or disconnect screen.", Feature.STATE) { getState() },
             McpTool("get_inventory", "Every non-empty inventory slot. Slots 0-8 are the hotbar, 9-35 the main inventory, 36-39 armor (feet to head) and 40 the offhand.", Feature.STATE) { getInventory() },
+            McpTool("get_container", "Open menu slots, including empty slots, player inventory mapping and cursor stack. Use these menu slot ids with click_slot; they differ from get_inventory ids.", Feature.STATE) { getContainer() },
+            McpTool(
+                "click_slot", "Needs take_over. Click a menu slot: pickup (left/right), quick_move (shift-click), swap (button 0-8 hotbar or 40 offhand), throw (button 0 one, 1 stack). slot -999 clicks outside for pickup. Pass container_id from get_container to refuse stale menus.", Feature.INPUT,
+                Schema.obj(
+                    Schema.integer("container_id", "Current menu id from get_container.", required = true, min = 0),
+                    Schema.integer("slot", "Menu slot id.", required = true, min = -999),
+                    Schema.string("action", "pickup, quick_move, swap or throw (default pickup)."),
+                    Schema.integer("button", "Mouse button or swap target (default 0).", min = 0, max = 40),
+                ),
+            ) { clickSlot(it.optInt("container_id", -1, 0..Int.MAX_VALUE), it.optInt("slot", -1, -999..Int.MAX_VALUE), it.optString("action") ?: "pickup", it.optInt("button", 0, 0..40)) },
             McpTool(
                 "screenshot", "A PNG of what the game shows right now.", Feature.SCREENSHOT,
                 Schema.obj(
@@ -148,6 +159,17 @@ object GameTools {
             McpTool(
                 "take_over", "Takes sole control of the player: the person's keyboard and mouse stop working in game until release_control, or until they take control back from the mod menu. Needed for send_chat, Baritone and joining or leaving worlds.", Feature.TAKE_OVER,
             ) { onClient { AgentControl.takeOver() }; ToolResult.text("You are in control") },
+            McpTool("respawn", "Needs take_over. Requests respawn after death (spectating in hardcore), like the death screen button. Check get_state afterwards.", Feature.INPUT) {
+                requireTakeOver("respawn")
+                onClient { minecraft ->
+                    val player = minecraft.requirePlayer()
+                    if (!player.isDeadOrDying) throw ToolError("The player is still alive")
+                    AgentInput.releaseAll()
+                    if (BaritoneBridge.installed) BaritoneBridge.stop()
+                    player.respawn()
+                }
+                ToolResult.text("Respawn requested; check get_state in a moment")
+            },
             McpTool("release_control", "Gives control back to the person and stops held keys and Baritone.", Feature.TAKE_OVER) {
                 onClient { AgentControl.release(byPlayer = false) }; ToolResult.text("The person is in control")
             },
@@ -166,9 +188,19 @@ object GameTools {
     }
 
     private fun getState(): ToolResult = onClient { minecraft ->
-        val player = minecraft.requirePlayer()
+        val player = minecraft.player
+        if (player == null) return@onClient ToolResult.text(gson.toJson(JsonObject().apply {
+            addProperty("connected", false)
+            addProperty("screen", minecraft.screen?.javaClass?.simpleName)
+            addProperty("screen_title", minecraft.screen?.title?.string)
+            addProperty("control", if (AgentControl.agentInControl()) "agent" else "player")
+        }))
         val level = player.level()
         val state = JsonObject().apply {
+            addProperty("connected", true)
+            addProperty("dead", player.isDeadOrDying)
+            addProperty("air", player.airSupply)
+            addProperty("max_air", player.maxAirSupply)
             addProperty("name", player.name.string)
             addProperty("server", minecraft.currentServer?.ip ?: if (minecraft.isLocalServer) "singleplayer" else "unknown")
             addProperty("dimension", level.dimension().identifier().toString())
@@ -227,6 +259,39 @@ object GameTools {
             addProperty("selected_hotbar_slot", inventory.selectedSlot + 1)
             add("slots", slots)
         }))
+    }
+
+    private fun getContainer(): ToolResult = onClient { minecraft ->
+        val player = minecraft.requirePlayer()
+        val menu = player.containerMenu
+        ToolResult.text(gson.toJson(JsonObject().apply {
+            addProperty("container_id", menu.containerId)
+            addProperty("menu", menu.javaClass.simpleName)
+            addProperty("cursor", describe(menu.carried))
+            add("slots", JsonArray().apply {
+                for (slot in menu.slots) add(JsonObject().apply {
+                    addProperty("slot", slot.index)
+                    addProperty("item", describe(slot.item))
+                    addProperty("can_place", slot.mayPlace(menu.carried))
+                    addProperty("can_pickup", slot.mayPickup(player))
+                    if (slot.container === player.inventory) addProperty("inventory_slot", slot.containerSlot)
+                })
+            })
+        }))
+    }
+
+    private fun clickSlot(containerId: Int, slot: Int, action: String, button: Int): ToolResult {
+        requireTakeOver("click_slot")
+        onClient { minecraft ->
+            val player = minecraft.requirePlayer()
+            val menu = player.containerMenu
+            ContainerClicks.validate(containerId, menu.containerId, slot, menu.slots.size, action, button)
+            AgentInput.touch()
+            minecraft.gameMode!!.handleInventoryMouseClick(menu.containerId, slot, button, ClickType.valueOf(action.uppercase()), player)
+        }
+        // Allow the server to acknowledge the click before reading slots again.
+        Thread.sleep(CRAFT_WAIT_MILLIS)
+        return getContainer()
     }
 
     private fun screenshot(downscale: Int, playerView: Boolean): ToolResult {
