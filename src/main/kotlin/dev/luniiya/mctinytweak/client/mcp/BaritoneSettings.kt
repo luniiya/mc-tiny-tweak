@@ -5,6 +5,7 @@ import baritone.api.Settings
 import baritone.api.utils.SettingsUtil
 import dev.luniiya.mctinytweak.McTinyTweak
 import dev.luniiya.mctinytweak.baritone.BaritoneDefaults
+import dev.luniiya.mctinytweak.baritone.BaritoneInventory
 import net.fabricmc.loader.api.FabricLoader
 import java.nio.file.Files
 
@@ -31,7 +32,7 @@ object BaritoneSettings {
     private fun entry(setting: Settings.Setting<*>) = Entry(
         name = setting.name,
         type = SettingsUtil.settingTypeToString(setting),
-        value = SettingsUtil.settingValueToString(setting),
+        value = if (setting.name == BaritoneInventory.SETTING) BaritoneInventoryGate.preference().toString() else SettingsUtil.settingValueToString(setting),
         default = BaritoneDefaults.defaultFor(setting.name, SettingsUtil.settingDefaultToString(setting), modDefaults),
         isBoolean = setting.valueClass == java.lang.Boolean::class.java,
     )
@@ -51,7 +52,7 @@ object BaritoneSettings {
         if (save) save()
     }
 
-    fun save() = SettingsUtil.save(settings)
+    fun save() = BaritoneInventoryGate.withPreference { SettingsUtil.save(settings) }
 
     /** Puts every setting back to the mod's default, or Baritone's where the mod has none. */
     fun resetToModDefaults() {

@@ -9,7 +9,7 @@
     "sources": "https://github.com/luniiya/mc-tiny-tweak",
     "issues": "https://github.com/luniiya/mc-tiny-tweak/issues"
   },
-  "environment": "*",
+  "environment": "client",
   "entrypoints": {
     "main": [{"adapter": "kotlin", "value": "dev.luniiya.mctinytweak.McTinyTweak"}],
     "client": [{"adapter": "kotlin", "value": "dev.luniiya.mctinytweak.client.McTinyTweakClient"}],

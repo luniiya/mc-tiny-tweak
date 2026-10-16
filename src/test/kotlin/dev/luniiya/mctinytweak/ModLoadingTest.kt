@@ -29,6 +29,11 @@ class ModLoadingTest {
     }
 
     @Test
+    fun `the mod is client only, so servers never load it`() {
+        assertEquals("client", resource("fabric.mod.json")["environment"].asString)
+    }
+
+    @Test
     fun `Kotlin adapter resolves the declared entrypoint`() {
         val entrypoint = resource("fabric.mod.json").getAsJsonObject("entrypoints")
             .getAsJsonArray("main").single().asJsonObject

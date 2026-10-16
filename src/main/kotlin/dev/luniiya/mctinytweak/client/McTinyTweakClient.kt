@@ -13,6 +13,7 @@ import dev.luniiya.mctinytweak.client.attributes.AttributeAutoApplier
 import dev.luniiya.mctinytweak.client.inventorypresets.StarterInventory
 import dev.luniiya.mctinytweak.client.mcp.AgentInput
 import dev.luniiya.mctinytweak.client.mcp.BaritoneBridge
+import dev.luniiya.mctinytweak.client.mcp.BaritoneInventoryGate
 import dev.luniiya.mctinytweak.client.mcp.BaritoneSettings
 import dev.luniiya.mctinytweak.client.mcp.Mcp
 import dev.luniiya.mctinytweak.client.mcp.PortalBuilder
@@ -72,6 +73,7 @@ object McTinyTweakClient : ClientModInitializer {
             PortalBuilder.tick(client)
             StarterInventory.tick(client)
             AttributeAutoApplier.tick(client)
+            if (BaritoneBridge.installed) BaritoneInventoryGate.tick(client)
             while (freecamKey.consumeClick()) Freecam.toggle()
             while (agentViewKey.consumeClick()) Freecam.toggleAgentView()
             while (fullbrightKey.consumeClick()) Tweaks.toggleFullbright()

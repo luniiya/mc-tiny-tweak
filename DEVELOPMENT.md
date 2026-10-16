@@ -80,6 +80,8 @@ entrypoint resolution, and packaged mixin configuration. Tests that need items
 or registries call `MinecraftTestSupport`, which bootstraps vanilla and builds
 the vanilla registry lookup.
 
+The mod is client only (`"environment": "client"`): dedicated servers, including `runServer` and the GameTest server, never load it. Anything that changes the world goes through vanilla commands such as `/item` and `/attribute`, which need OP. The server GameTests in `src/gametest` use the mod's plain classes from the classpath without the mod being loaded, so they must not rely on its initializers or mixins.
+
 Add server or client GameTests with the first gameplay feature that needs them.
 GameTests and a real client smoke test are needed to validate actual injections;
 passing unit tests alone does not prove a mixin works in game.
