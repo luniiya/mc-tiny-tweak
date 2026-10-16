@@ -3,6 +3,7 @@ package dev.luniiya.mctinytweak.mcp
 import com.mojang.blaze3d.platform.InputConstants
 import dev.luniiya.mctinytweak.client.McTinyTweakClient
 import dev.luniiya.mctinytweak.client.mcp.AgentControl
+import net.minecraft.client.KeyMapping
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -31,6 +32,19 @@ class TakeOverTest {
     fun `the mod menu key keeps working so the player can take control back`() {
         val menu = InputConstants.getKey(McTinyTweakClient.openMenuKey.saveString())
         withAgent { assertFalse(AgentControl.blocksKey(menu)) }
+    }
+
+    @Test
+    fun `chat, command and fullbright keys keep working while the agent plays`() {
+        // Vanilla's Options normally creates these; without a game they are made here.
+        val chat = KeyMapping.get("key.chat") ?: KeyMapping("key.chat", InputConstants.KEY_RETURN, KeyMapping.Category.MULTIPLAYER)
+        val command = KeyMapping.get("key.command") ?: KeyMapping("key.command", InputConstants.KEY_SLASH, KeyMapping.Category.MULTIPLAYER)
+        withAgent {
+            for (mapping in listOf(chat, command, McTinyTweakClient.fullbrightKey)) {
+                assertFalse(AgentControl.blocksKey(InputConstants.getKey(mapping.saveString())), mapping.name)
+            }
+            assertTrue(AgentControl.blocksKey(InputConstants.getKey("key.keyboard.w")))
+        }
     }
 
     @Test

@@ -11,7 +11,8 @@ import net.minecraft.network.chat.Component
 
 /**
  * Who controls the player. While the agent has taken over, the keyboard and mouse no longer move or act,
- * except for the mod menu, freecam and agent view keys, so the player can always open Mod menu > MCP and take control back.
+ * except for the mod menu, freecam, agent view, fullbright and chat keys, so the player can always talk, watch and
+ * open Mod menu > MCP to take control back.
  */
 object AgentControl {
     @Volatile
@@ -28,8 +29,16 @@ object AgentControl {
         else -> false
     }
 
-    /** Keys that keep working while the agent plays: the mod menu, freecam and the agent view. */
-    private fun exemptKeys() = listOf(McTinyTweakClient.openMenuKey, McTinyTweakClient.freecamKey, McTinyTweakClient.agentViewKey)
+    /** Keys that keep working while the agent plays: the mod menu, freecam, agent view, fullbright and chat. */
+    private fun exemptKeys() = listOf(
+        McTinyTweakClient.openMenuKey,
+        McTinyTweakClient.freecamKey,
+        McTinyTweakClient.agentViewKey,
+        McTinyTweakClient.fullbrightKey,
+    ) + CHAT_KEYS.mapNotNull { KeyMapping.get(it) }
+
+    /** Vanilla's chat and command keys, looked up by name. */
+    private val CHAT_KEYS = listOf("key.chat", "key.command")
 
     private fun boundKey(mapping: KeyMapping) = (mapping as KeyMappingAccessor).`mc_tiny_tweak$getKey`()
 

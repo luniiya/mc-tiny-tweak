@@ -2,10 +2,10 @@ package dev.luniiya.mctinytweak.client.tweaks
 
 import dev.luniiya.mctinytweak.McTinyTweak
 import com.mojang.blaze3d.platform.InputConstants
+import dev.luniiya.mctinytweak.client.Notices
 import dev.luniiya.mctinytweak.settings.TweakSettings
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.KeyMapping
-import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
 import java.nio.file.Files
@@ -30,10 +30,7 @@ object Tweaks {
 
     fun toggleFullbright() {
         update { it.copy(fullbright = !it.fullbright) }
-        Minecraft.getInstance().player?.displayClientMessage(
-            Component.translatable(if (fullbright()) "notice.mc_tiny_tweak.fullbright.on" else "notice.mc_tiny_tweak.fullbright.off"),
-            true,
-        )
+        Notices.show(Component.translatable(if (fullbright()) "notice.mc_tiny_tweak.fullbright.on" else "notice.mc_tiny_tweak.fullbright.off"))
     }
 
     fun load() {
