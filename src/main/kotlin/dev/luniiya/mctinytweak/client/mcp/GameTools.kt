@@ -7,6 +7,7 @@ import com.google.gson.JsonObject
 import dev.luniiya.mctinytweak.baritone.BaritoneDefaults
 import dev.luniiya.mctinytweak.client.freecam.Freecam
 import dev.luniiya.mctinytweak.mcp.AgentControls
+import dev.luniiya.mctinytweak.mcp.BlockInspection
 import dev.luniiya.mctinytweak.mcp.ContainerClicks
 import dev.luniiya.mctinytweak.mcp.CraftingFit
 import dev.luniiya.mctinytweak.mcp.McpSettings.Feature
@@ -32,6 +33,7 @@ import net.minecraft.client.multiplayer.ServerList
 import net.minecraft.client.multiplayer.resolver.ServerAddress
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.player.StackedItemContents
 import net.minecraft.world.inventory.AbstractCraftingMenu
 import net.minecraft.world.inventory.ClickType
@@ -41,6 +43,7 @@ import net.minecraft.world.item.crafting.display.RecipeDisplayId
 import net.minecraft.world.item.crafting.display.ShapedCraftingRecipeDisplay
 import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay
 import net.minecraft.world.item.crafting.display.SlotDisplayContext
+import net.minecraft.world.level.chunk.status.ChunkStatus
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
@@ -63,6 +66,16 @@ object GameTools {
         listOf(
             McpTool("get_state", "Connection and screen state, plus player position, rotation, health, hunger, game mode, held items, death state, crosshair target and nearby players. Also works on the title or disconnect screen.", Feature.STATE) { getState() },
             McpTool("get_inventory", "Every non-empty inventory slot. Slots 0-8 are the hotbar, 9-35 the main inventory, 36-39 armor (feet to head) and 40 the offhand.", Feature.STATE) { getInventory() },
+            McpTool(
+                "inspect_blocks", "Inspect a small cube of client-loaded blocks and fluids before mining or overriding a refused route. Coordinates default to your block position; radius defaults to 1 (maximum 4). Unknown/unloaded or out-of-height cells have loaded=false, never safe air. Air is omitted unless include_air=true. Does not load chunks.", Feature.STATE,
+                Schema.obj(
+                    Schema.integer("x", "Center block X.", min = -30_000_000, max = 30_000_000),
+                    Schema.integer("y", "Center block Y.", min = -30_000_000, max = 30_000_000),
+                    Schema.integer("z", "Center block Z.", min = -30_000_000, max = 30_000_000),
+                    Schema.integer("radius", "Cube radius in blocks.", min = 0, max = 4),
+                    Schema.Property("include_air", JsonObject().apply { addProperty("type", "boolean") }, false),
+                ),
+            ) { inspectBlocks(it) },
             McpTool("get_container", "Open menu slots, including empty slots, player inventory mapping and cursor stack. Use these menu slot ids with click_slot; they differ from get_inventory ids.", Feature.STATE) { getContainer() },
             McpTool(
                 "click_slot", "Needs take_over. Click a menu slot: pickup (left/right), quick_move (shift-click), swap (button 0-8 hotbar or 40 offhand), throw (button 0 one, 1 stack). slot -999 clicks outside for pickup. Pass container_id from get_container to refuse stale menus.", Feature.INPUT,
@@ -225,7 +238,7 @@ object GameTools {
             addProperty("screen_title", minecraft.screen?.title?.string)
             addProperty("control", if (AgentControl.agentInControl()) "agent" else "player")
         }))
-        val level = player.level()
+        val level = minecraft.level ?: throw ToolError("Not in a world")
         val state = JsonObject().apply {
             addProperty("connected", true)
             addProperty("dead", player.isDeadOrDying)
@@ -273,6 +286,36 @@ object GameTools {
             addProperty("baritone_installed", BaritoneBridge.installed)
         }
         ToolResult.text(gson.toJson(state))
+    }
+
+    private fun inspectBlocks(args: JsonObject): ToolResult = onClient { minecraft ->
+        val player = minecraft.requirePlayer()
+        val level = minecraft.level ?: throw ToolError("Not in a world")
+        val origin = player.blockPosition()
+        val center = BlockPos(args.optInt("x", origin.x, -30_000_000..30_000_000), args.optInt("y", origin.y, -30_000_000..30_000_000), args.optInt("z", origin.z, -30_000_000..30_000_000))
+        val cells = BlockInspection.inspect(center, args.optInt("radius", 1, 0..4), args.get("include_air")?.asBoolean ?: false) { pos ->
+            // ClientLevel.hasChunk always returns true; only the cache can distinguish unloaded cells.
+            val chunk = if (level.isOutsideBuildHeight(pos)) null else level.chunkSource.getChunk(pos.x shr 4, pos.z shr 4, ChunkStatus.FULL, false)
+            if (chunk == null) null else {
+                val state = level.getBlockState(pos)
+                val fluid = state.fluidState
+                BlockInspection.Block(BuiltInRegistries.BLOCK.getKey(state.block).toString(), state.isAir,
+                    if (fluid.isEmpty) null else BuiltInRegistries.FLUID.getKey(fluid.type).toString(), fluid.isSource, state.toString())
+            }
+        }
+        ToolResult.text(gson.toJson(JsonObject().apply {
+            addProperty("dimension", level.dimension().identifier().toString())
+            add("blocks", JsonArray().apply {
+                for (cell in cells) add(JsonObject().apply {
+                    addProperty("x", cell.position.x); addProperty("y", cell.position.y); addProperty("z", cell.position.z)
+                    addProperty("loaded", cell.block != null)
+                    cell.block?.let { block ->
+                        addProperty("block", block.id); addProperty("state", block.state)
+                        addProperty("fluid", block.fluid); addProperty("fluid_source", block.fluidSource)
+                    }
+                })
+            })
+        }))
     }
 
     private fun getInventory(): ToolResult = onClient { minecraft ->

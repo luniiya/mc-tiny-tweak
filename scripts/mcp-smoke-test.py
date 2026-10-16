@@ -35,13 +35,24 @@ def main():
     check(initialized['result']['protocolVersion'] == '2025-11-25', 'protocol negotiation')
     check(rpc('ping')['result'] == {}, 'ping')
     names = {tool['name'] for tool in rpc('tools/list')['result']['tools']}
-    check({'get_state', 'get_container', 'click_slot', 'respawn'} <= names, 'gameplay tool discovery (features must be enabled)')
+    check({'get_state', 'get_container', 'click_slot', 'respawn', 'inspect_blocks'} <= names, 'gameplay tool discovery (features must be enabled)')
     check(rpc('missing')['error']['code'] == -32601, 'unknown method rejection')
     check(rpc('tools/call', {'name': 'missing'})['error']['code'] == -32602, 'unknown tool rejection')
     for arguments in ({}, {'slot': '2'}, {'slot': 10}, {'slot': None}):
         check(rpc('tools/call', {'name': 'select_slot', 'arguments': arguments})['result']['isError'],
               'invalid slot arguments rejected: ' + repr(arguments))
-    check(not rpc('tools/call', {'name': 'get_state'})['result']['isError'], 'state in world or on title screen')
+    state_result = rpc('tools/call', {'name': 'get_state'})['result']
+    check(not state_result['isError'], 'state in world or on title screen')
+    state = json.loads(state_result['content'][0]['text'])
+    if state['connected']:
+        result = rpc('tools/call', {'name': 'inspect_blocks', 'arguments': {'radius': 0, 'include_air': True}})['result']
+        check(not result['isError'], 'live block inspection')
+        blocks = json.loads(result['content'][0]['text'])['blocks']
+        check(len(blocks) == 1 and blocks[0]['loaded'], 'player cell is loaded')
+        check(all(blocks[0][axis] == state['block_position'][axis] for axis in ('x', 'y', 'z')), 'inspection defaults to player position')
+        result = rpc('tools/call', {'name': 'inspect_blocks', 'arguments': {'x': 30_000_000, 'radius': 0}})['result']
+        check(not result['isError'] and not json.loads(result['content'][0]['text'])['blocks'][0]['loaded'], 'unloaded inspection stays unknown')
+    check(rpc('tools/call', {'name': 'inspect_blocks', 'arguments': {'radius': 5}})['result']['isError'], 'oversized inspection rejected')
     dimensions = []
     for scale in (2, 4):
         result = rpc('tools/call', {'name': 'screenshot', 'arguments': {'downscale': scale}})['result']
