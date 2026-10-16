@@ -76,5 +76,18 @@ class McpHttpServerTest {
         assertFalse(McpHttpServer.isLocalOrigin("http://localhost.evil.example"))
     }
 
+    @Test
+    fun `games starting from a taken port each get the next free one`() {
+        val first = freePort()
+        val others = List(3) { McpHttpServer(token) { null } }
+        try {
+            val ports = listOf(server.start(first, McpSettings.PORT_ATTEMPTS)) + others.map { it.start(first, McpSettings.PORT_ATTEMPTS) }
+            assertEquals(4, ports.toSet().size, "every game has its own port: $ports")
+            assertTrue(ports.all { it in first until first + McpSettings.PORT_ATTEMPTS })
+        } finally {
+            others.forEach { it.stop() }
+        }
+    }
+
     private fun freePort() = ServerSocket(0).use { it.localPort }
 }

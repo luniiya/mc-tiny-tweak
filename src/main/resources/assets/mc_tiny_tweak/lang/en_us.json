@@ -69,7 +69,7 @@
   "screen.mc_tiny_tweak.mcp.feature.input.tooltip": "Lets the agent hold keys, look around, pick hotbar slots and close menus. While it plays, the game does not pause when the window loses focus.",
   "screen.mc_tiny_tweak.mcp.feature.baritone": "Baritone",
   "screen.mc_tiny_tweak.mcp.feature.baritone.tooltip": "Lets the agent give Baritone commands, such as mining or walking somewhere, when Baritone is installed. Needs take over.",
-  "screen.mc_tiny_tweak.mcp.status.on": "Listening on %s",
+  "screen.mc_tiny_tweak.mcp.status.on": "Listening on %s as %s",
   "screen.mc_tiny_tweak.mcp.status.off": "Off",
   "screen.mc_tiny_tweak.mcp.status.failed": "Could not start: %s",
   "screen.mc_tiny_tweak.mcp.copy": "Copy setup command",

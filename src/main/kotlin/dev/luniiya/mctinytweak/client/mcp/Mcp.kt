@@ -25,7 +25,6 @@ object Mcp {
     private val tokenFile: Path get() = configDir.resolve(TOKEN_FILE_NAME)
 
     const val TOKEN_FILE_NAME = "mc_tiny_tweak_mcp_token.txt"
-    const val SERVER_NAME = "minecraft"
 
     @JvmStatic
     val chat = ChatLog()
@@ -78,7 +77,7 @@ object Mcp {
     /** A Claude Code command that connects an agent to this instance, or null while the server is off. */
     fun setupCommand(): String? {
         val bound = port ?: return null
-        return "claude mcp add --transport http $SERVER_NAME http://127.0.0.1:$bound${McpHttpServer.PATH} " +
+        return "claude mcp add --transport http ${McpSettings.serverName(bound)} http://127.0.0.1:$bound${McpHttpServer.PATH} " +
             "--header \"Authorization: Bearer $token\""
     }
 
@@ -99,8 +98,12 @@ object Mcp {
         )
         val created = McpHttpServer(token, protocol::handle)
         try {
-            val bound = created.start(settings.port)
+            val bound = created.start(settings.port, McpSettings.PORT_ATTEMPTS)
             server = created
+            if (bound != settings.port) {
+                settings = settings.rememberingPort(bound)
+                save()
+            }
             McTinyTweak.logger.info("MCP server listening on 127.0.0.1:{}", bound)
         } catch (e: Exception) {
             startError = e.message ?: e.javaClass.simpleName

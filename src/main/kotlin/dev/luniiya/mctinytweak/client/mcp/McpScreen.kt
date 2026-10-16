@@ -2,6 +2,7 @@ package dev.luniiya.mctinytweak.client.mcp
 
 import dev.luniiya.mctinytweak.client.baritone.BaritoneLogScreen
 import dev.luniiya.mctinytweak.client.baritone.BaritoneSettingsScreen
+import dev.luniiya.mctinytweak.mcp.McpSettings
 import dev.luniiya.mctinytweak.mcp.McpSettings.Feature
 import net.minecraft.ChatFormatting
 import net.minecraft.client.gui.GuiGraphics
@@ -112,7 +113,7 @@ class McpScreen(private val parent: Screen?) : Screen(Component.translatable("sc
         val error = Mcp.startError
         return when {
             !Mcp.settings.enabled -> Component.translatable("screen.mc_tiny_tweak.mcp.status.off").withStyle(ChatFormatting.GRAY)
-            port != null -> Component.translatable("screen.mc_tiny_tweak.mcp.status.on", "127.0.0.1:$port").withStyle(ChatFormatting.GREEN)
+            port != null -> Component.translatable("screen.mc_tiny_tweak.mcp.status.on", "127.0.0.1:$port", McpSettings.serverName(port)).withStyle(ChatFormatting.GREEN)
             else -> Component.translatable("screen.mc_tiny_tweak.mcp.status.failed", error ?: "?").withStyle(ChatFormatting.RED)
         }
     }

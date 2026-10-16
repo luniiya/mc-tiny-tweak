@@ -40,4 +40,23 @@ class McpSettingsTest {
     fun `feature keys are unique`() {
         assertEquals(Feature.entries.size, Feature.entries.map { it.key }.toSet().size)
     }
+
+    @Test
+    fun `the port a game got is remembered for its next start`() {
+        val settings = McpSettings()
+        assertSame(settings, settings.rememberingPort(McpSettings.DEFAULT_PORT))
+        val moved = settings.rememberingPort(25603)
+        assertEquals(25603, moved.port)
+        assertEquals(25603, McpSettings.parse(moved.serialize()).port)
+        assertEquals(settings.copy(port = 25603), moved, "nothing else changes")
+    }
+
+    @Test
+    fun `a lot of games can run at once, each under its own name`() {
+        assertTrue(McpSettings.PORT_ATTEMPTS >= 50)
+        assertEquals("minecraft", McpSettings.serverName(McpSettings.DEFAULT_PORT))
+        val names = (0 until McpSettings.PORT_ATTEMPTS).map { McpSettings.serverName(McpSettings.DEFAULT_PORT + it) }
+        assertEquals(names.size, names.toSet().size)
+        assertEquals("minecraft-25600", McpSettings.serverName(25600))
+    }
 }
