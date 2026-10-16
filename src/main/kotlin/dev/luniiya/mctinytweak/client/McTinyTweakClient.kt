@@ -8,6 +8,8 @@ import dev.luniiya.mctinytweak.client.freecam.AgentStatusCard
 import dev.luniiya.mctinytweak.client.freecam.Freecam
 import dev.luniiya.mctinytweak.client.freecam.FreecamHud
 import dev.luniiya.mctinytweak.client.freelook.Freelook
+import dev.luniiya.mctinytweak.client.inventorypresets.InventoryPresetBar
+import dev.luniiya.mctinytweak.client.inventorypresets.InventoryPresetStore
 import dev.luniiya.mctinytweak.client.mcp.AgentInput
 import dev.luniiya.mctinytweak.client.mcp.BaritoneBridge
 import dev.luniiya.mctinytweak.client.mcp.BaritoneSettings
@@ -53,6 +55,8 @@ object McTinyTweakClient : ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(fullbrightKey)
         AgentStatusCard.register()
         FreecamHud.register()
+        InventoryPresetStore.register()
+        InventoryPresetBar.register()
         Mcp.load()
         ClientLifecycleEvents.CLIENT_STARTED.register {
             if (BaritoneBridge.installed) {
