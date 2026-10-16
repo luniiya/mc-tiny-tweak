@@ -1,5 +1,6 @@
 package dev.luniiya.mctinytweak.client.attributes
 
+import dev.luniiya.mctinytweak.attributes.AttributeAutoApply
 import dev.luniiya.mctinytweak.attributes.AttributeCommands
 import dev.luniiya.mctinytweak.client.itemeditor.ItemEditorSession
 import net.minecraft.ChatFormatting
@@ -136,6 +137,7 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
             val player = minecraft.player ?: return
             if (!operator) return
             player.connection.sendCommand(AttributeCommands.setBase(id, value))
+            AttributeAutoApplier.remember(minecraft, AttributeAutoApply.CUSTOM)
             // Synced attributes come back from the server; this keeps unsynced ones showing what was set.
             instance()?.baseValue = value
         }
@@ -144,6 +146,7 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
             val player = minecraft.player ?: return
             if (!operator) return
             player.connection.sendCommand(AttributeCommands.resetBase(id))
+            AttributeAutoApplier.remember(minecraft, AttributeAutoApply.CUSTOM)
             player.attributes.resetBaseValue(holder)
             input.value = AttributeCommands.format(default)
         }

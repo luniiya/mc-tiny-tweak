@@ -9,7 +9,7 @@ import dev.luniiya.mctinytweak.client.freecam.Freecam
 import dev.luniiya.mctinytweak.client.freecam.FreecamHud
 import dev.luniiya.mctinytweak.client.freelook.Freelook
 import dev.luniiya.mctinytweak.client.inventorypresets.InventoryPresetBar
-import dev.luniiya.mctinytweak.client.inventorypresets.InventoryPresetStore
+import dev.luniiya.mctinytweak.client.attributes.AttributeAutoApplier
 import dev.luniiya.mctinytweak.client.inventorypresets.StarterInventory
 import dev.luniiya.mctinytweak.client.mcp.AgentInput
 import dev.luniiya.mctinytweak.client.mcp.BaritoneBridge
@@ -57,7 +57,7 @@ object McTinyTweakClient : ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(fullbrightKey)
         AgentStatusCard.register()
         FreecamHud.register()
-        InventoryPresetStore.register()
+        HiddenCommandFeedback.register()
         InventoryPresetBar.register()
         Mcp.load()
         ClientLifecycleEvents.CLIENT_STARTED.register {
@@ -71,6 +71,7 @@ object McTinyTweakClient : ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             PortalBuilder.tick(client)
             StarterInventory.tick(client)
+            AttributeAutoApplier.tick(client)
             while (freecamKey.consumeClick()) Freecam.toggle()
             while (agentViewKey.consumeClick()) Freecam.toggleAgentView()
             while (fullbrightKey.consumeClick()) Tweaks.toggleFullbright()

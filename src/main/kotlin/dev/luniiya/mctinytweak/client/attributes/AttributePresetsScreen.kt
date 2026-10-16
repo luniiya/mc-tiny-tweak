@@ -57,6 +57,7 @@ class AttributePresetsScreen(private val parent: Screen?) : Screen(Component.tra
     private fun load(name: String) {
         val player = minecraft.player ?: return
         val sent = PlayerAttributes.load(player, name)
+        AttributeAutoApplier.remember(minecraft, name)
         status = Component.translatable("screen.mc_tiny_tweak.attributes.presets.loaded", name, sent)
     }
 
@@ -66,6 +67,7 @@ class AttributePresetsScreen(private val parent: Screen?) : Screen(Component.tra
                 { confirmed ->
                     if (confirmed) {
                         PlayerAttributes.update { it.delete(name) }
+                        AttributeAutoApplier.update { it.deleted(name) }
                         status = Component.translatable("screen.mc_tiny_tweak.attributes.presets.deleted", name)
                     }
                     minecraft.setScreen(this)
@@ -113,20 +115,47 @@ class AttributePresetsScreen(private val parent: Screen?) : Screen(Component.tra
             .apply { if (name == AttributePresets.DEFAULT) tooltip(Tooltip.create(Component.translatable("screen.mc_tiny_tweak.attributes.presets.default.tooltip"))) }
             .build()
             .also { it.active = ItemEditorSession.canApplyAsOperator(minecraft) }
+        private val autoButton: Button = Button.builder(autoLabel()) { toggleAuto() }
+            .size(AUTO_WIDTH, 20)
+            .tooltip(Tooltip.create(Component.translatable("screen.mc_tiny_tweak.attributes.presets.auto.tooltip")))
+            .build()
+
+        private fun isAuto() = AttributeAutoApplier.state.preset == name
+
+        private fun autoLabel(): Component = if (isAuto()) {
+            Component.translatable("screen.mc_tiny_tweak.attributes.presets.auto").withStyle(ChatFormatting.GREEN)
+        } else {
+            Component.translatable("screen.mc_tiny_tweak.attributes.presets.auto").withStyle(ChatFormatting.DARK_GRAY)
+        }
+
+        /** Only one preset is auto applied; clicking the current one turns auto apply off. */
+        private fun toggleAuto() {
+            val turnOn = !isAuto()
+            AttributeAutoApplier.update { it.withPreset(if (turnOn) name else null) }
+            status = if (turnOn) Component.translatable("screen.mc_tiny_tweak.attributes.presets.auto.on", name)
+            else Component.translatable("screen.mc_tiny_tweak.attributes.presets.auto.off")
+        }
+
         private val deleteButton = Button.builder(Component.translatable("screen.mc_tiny_tweak.attributes.presets.delete")) { delete(name) }
             .size(50, 20).build()
-        private val widgets = if (builtIn) listOf(loadButton) else listOf(loadButton, deleteButton)
+        private val widgets = if (builtIn) listOf(autoButton, loadButton) else listOf(autoButton, loadButton, deleteButton)
 
         override fun renderContent(graphics: GuiGraphics, mouseX: Int, mouseY: Int, hovered: Boolean, partialTick: Float) {
-            val text = font.substrByWidth(label, contentWidth - 110)
+            autoButton.message = autoLabel()
+            val text = font.substrByWidth(label, contentWidth - 110 - AUTO_WIDTH - 4)
             graphics.drawString(font, net.minecraft.locale.Language.getInstance().getVisualOrder(text), contentX, contentYMiddle - 4, 0xFFFFFFFF.toInt())
             deleteButton.setPosition(contentRight - 50, contentY)
             loadButton.setPosition(contentRight - 104, contentY)
+            autoButton.setPosition(contentRight - 108 - AUTO_WIDTH, contentY)
             widgets.forEach { it.render(graphics, mouseX, mouseY, partialTick) }
         }
 
         override fun children(): List<GuiEventListener> = widgets
 
         override fun narratables(): List<NarratableEntry> = widgets
+    }
+
+    private companion object {
+        const val AUTO_WIDTH = 40
     }
 }

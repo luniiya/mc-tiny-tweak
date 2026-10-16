@@ -2,6 +2,7 @@ package dev.luniiya.mctinytweak.client.attributes
 
 import dev.luniiya.mctinytweak.McTinyTweak
 import dev.luniiya.mctinytweak.attributes.AttributePresets
+import dev.luniiya.mctinytweak.client.HiddenCommandFeedback
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.Holder
@@ -31,8 +32,13 @@ object PlayerAttributes {
     fun defaults(player: LocalPlayer) = holders(player).associate { it.registeredName to default(it) }
 
     /** Sends what the preset needs and mirrors it locally, so attributes the server does not sync still show it. */
-    fun load(player: LocalPlayer, name: String): Int {
+    fun load(player: LocalPlayer, name: String, quiet: Boolean = false): Int {
         val commands = presets().loadCommands(name, baseValues(player), defaults(player))
+        if (quiet) {
+            val resets = commands.count { it.endsWith(" base reset") }
+            HiddenCommandFeedback.hide(listOf("commands.attribute.base_value.set.success"), commands.size - resets)
+            HiddenCommandFeedback.hide(listOf("commands.attribute.base_value.reset.success"), resets)
+        }
         commands.forEach(player.connection::sendCommand)
         val target = presets().values(name).orEmpty()
         for (holder in holders(player)) {
