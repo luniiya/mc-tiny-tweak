@@ -14,6 +14,9 @@
     "client.keybinds.KeyBindsScreenAccessor",
     "client.keybinds.KeyBindsScreenMixin",
     "client.keybinds.KeyEntryAccessor",
+    "client.mcp.ChatComponentMixin",
+    "client.mcp.GameRendererMixin",
+    "client.mcp.KeyMappingAccessor",
     "client.visuals.BannerRendererMixin",
     "client.visuals.ScreenEffectRendererMixin",
     "client.visuals.ShieldSpecialRendererMixin"

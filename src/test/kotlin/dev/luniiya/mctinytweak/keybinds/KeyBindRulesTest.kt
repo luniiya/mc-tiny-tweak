@@ -49,9 +49,9 @@ class KeyBindRulesTest {
     }
 
     @Test
-    fun `tablet mode moves freelook to left click and mouse mode puts it back on left control`() {
+    fun `tablet mode moves freelook to left click and mouse mode puts it on middle click`() {
         assertEquals("key.mouse.left", KeyBindRules.InputMode.TABLET.freelook)
-        assertEquals("key.keyboard.left.control", KeyBindRules.InputMode.MOUSE.freelook)
+        assertEquals("key.mouse.middle", KeyBindRules.InputMode.MOUSE.freelook)
         assertEquals(PersonalDefaults.keybinds["key.mc_tiny_tweak.freelook"], KeyBindRules.InputMode.MOUSE.freelook)
         for (mode in KeyBindRules.InputMode.entries) {
             assertNotEquals(mode.attack, mode.freelook, "freelook never shares a button with attack in $mode")

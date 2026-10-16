@@ -97,11 +97,11 @@ that must not be published outside this repository.
 
 ## Key Binds screen
 
-The Controls > Key Binds screen gets a key search (click it, then press a key or mouse button; Escape clears), a name or category search, a Tablet/Mouse toggle for attack, use and freelook (tablet: Q, E, hold left click; mouse: left click, right click, hold left ctrl), "Unbind extras" (unbinds every bind not listed in `default-options.txt`), and "View defaults" (a read-only list of the bundled binds). `KeyBindsScreen` inherits `addTitle`, so `KeyBindsScreenMixin` overrides it rather than injecting into it.
+The Controls > Key Binds screen gets a key search (click it, then press a key or mouse button; Escape clears), a name or category search, a Tablet/Mouse toggle for attack, use and freelook (tablet: Q, E, hold left click; mouse: left click, right click, hold middle click), "Unbind extras" (unbinds every bind not listed in `default-options.txt`), and "View defaults" (a read-only list of the bundled binds). `KeyBindsScreen` inherits `addTitle`, so `KeyBindsScreenMixin` overrides it rather than injecting into it.
 
 ## Freelook
 
-Hold the freelook key (left control by default; sprint is moved to Z in the personal defaults) to look around while the player keeps facing and moving the same way. First person switches to the back view while held and returns on release. `FreelookCamera` holds the tested logic. `MouseHandlerMixin` sends mouse movement to it instead of the player, and `CameraMixin` points the camera along it. Written from scratch with Celibistrial's AGPL Freelook mod as a behavior reference only.
+Hold the freelook key (middle click by default, with pick block moved to P; sprint is on Z in the personal defaults) to look around while the player keeps facing and moving the same way. First person switches to the back view while held and returns on release. `FreelookCamera` holds the tested logic. `MouseHandlerMixin` sends mouse movement to it instead of the player, and `CameraMixin` points the camera along it. Written from scratch with Celibistrial's AGPL Freelook mod as a behavior reference only.
 
 ## Visual tweaks
 
@@ -116,3 +116,16 @@ To test with two players, run `./gradlew :1.21.11:runServer` (offline mode, in `
 ## Hotbar
 
 The hotbar is split in two: slots 1-4 (X C V B in the personal binds) are separated from slots 5-9 by a gap (`HotbarLayout.GAP`). `GuiMixin` replaces `Gui.renderItemHotbar`, which is rebuilt from the vanilla sprites, so resource packs still apply. When one of those slots is empty it shows a faint shadow of its purpose (`HotbarHints`): an axe, a pickaxe, a water bucket, then a block. The first three are vanilla item textures multiplied by a translucent black, and the block is a 16x16 cube drawn from a mask.
+
+## MCP server
+
+The mod runs a Model Context Protocol server so an AI agent on this computer can play the game. It is on by default in every instance and has its own MCP screen in the mod menu: a main switch, one switch per kind of access (game state, screenshots, read chat, send chat, commands, movement and keys, Baritone), "Copy setup command" and "New token". Settings are saved per instance in `config/mc_tiny_tweak_mcp.properties`, and the token in `config/mc_tiny_tweak_mcp_token.txt`.
+
+- Transport: Streamable HTTP with plain JSON replies on `http://127.0.0.1:25599/mcp`. When the port is taken (for example by a second client), the next free one up to 25608 is used; the MCP screen shows the actual one. `McpHttpServer` is written on sockets because the JDK's httpserver module is missing from some game runtimes.
+- Security: loopback only, a bearer token on every request, and requests with a foreign `Origin` or `Host` are refused so web pages cannot reach it.
+- Connect Claude Code with the copied command, which looks like `claude mcp add --transport http minecraft http://127.0.0.1:25599/mcp --header "Authorization: Bearer <token>"`.
+- Tools (`GameTools`): `get_state`, `get_inventory`, `screenshot`, `read_chat`, `send_chat`, `run_command` (returns the chat feedback), `hold_keys`, `press_key`, `release_keys`, `look`, `look_at`, `select_slot`, `close_screen`, `baritone` and `baritone_status`. Switched off features drop their tools from `tools/list`.
+- Game work runs on the client thread; waits happen on the request thread. `ChatComponentMixin` records every chat line, `KeyMappingAccessor` queues single presses, and `GameRendererMixin` stops the unfocused window from opening the pause menu while the agent is playing (holding keys or input in the last five minutes).
+- Baritone is optional: `modCompileOnly` against Baritone's API, and `BaritoneBridge` only touches it when the `baritone` mod is loaded. Dev runs include Baritone 1.17.0 (the 1.21.11 build) from its GitHub release, plus its nether pathfinder, which Baritone nests and dev runs do not load.
+
+To try it by hand, see the JSON-RPC calls in `McpProtocolTest`; `initialize`, `tools/list` and `tools/call` are plain POSTs.

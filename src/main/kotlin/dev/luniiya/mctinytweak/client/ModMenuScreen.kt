@@ -1,6 +1,7 @@
 package dev.luniiya.mctinytweak.client
 
 import dev.luniiya.mctinytweak.client.itemeditor.ItemEditorScreen
+import dev.luniiya.mctinytweak.client.mcp.McpScreen
 import dev.luniiya.mctinytweak.client.tweaks.TweaksScreen
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.Button
@@ -23,6 +24,12 @@ class ModMenuScreen(private val parent: Screen?) : Screen(Component.translatable
         addRenderableWidget(
             Button.builder(Component.translatable("screen.mc_tiny_tweak.tweaks")) {
                 minecraft.setScreen(TweaksScreen(this))
+            }.bounds(x, y, buttonWidth, 20).build(),
+        )
+        y += 24
+        addRenderableWidget(
+            Button.builder(Component.translatable("screen.mc_tiny_tweak.mcp")) {
+                minecraft.setScreen(McpScreen(this))
             }.bounds(x, y, buttonWidth, 20).build(),
         )
         y += 32

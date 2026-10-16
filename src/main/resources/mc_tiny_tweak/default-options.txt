@@ -112,9 +112,9 @@ key_key.drop:key.keyboard.f24
 key_key.inventory:key.keyboard.tab
 key_key.chat:key.keyboard.enter
 key_key.playerlist:key.keyboard.right.alt
-key_key.pickItem:key.mouse.middle
+key_key.pickItem:key.keyboard.p
 key_key.command:key.keyboard.unknown
-key_key.socialInteractions:key.keyboard.p
+key_key.socialInteractions:key.keyboard.unknown
 key_key.toggleGui:key.keyboard.f1
 key_key.toggleSpectatorShaderEffects:key.keyboard.f4
 key_key.screenshot:key.keyboard.f2
@@ -254,4 +254,4 @@ modelPart_left_pants_leg:true
 modelPart_right_pants_leg:true
 modelPart_hat:true
 key_key.mc_tiny_tweak.open_menu:key.keyboard.backslash
-key_key.mc_tiny_tweak.freelook:key.keyboard.left.control
+key_key.mc_tiny_tweak.freelook:key.mouse.middle

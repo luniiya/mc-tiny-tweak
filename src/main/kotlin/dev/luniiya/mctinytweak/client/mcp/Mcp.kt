@@ -1,0 +1,138 @@
+package dev.luniiya.mctinytweak.client.mcp
+
+import dev.luniiya.mctinytweak.McTinyTweak
+import dev.luniiya.mctinytweak.mcp.ChatLog
+import dev.luniiya.mctinytweak.mcp.McpHttpServer
+import dev.luniiya.mctinytweak.mcp.McpProtocol
+import dev.luniiya.mctinytweak.mcp.McpSettings
+import net.fabricmc.loader.api.FabricLoader
+import java.nio.file.Files
+import java.nio.file.Path
+import java.security.SecureRandom
+
+/**
+ * The MCP server that lets an agent play this game instance. Settings and the access token live in the
+ * instance's config folder, so every instance has its own switch and token.
+ */
+object Mcp {
+    private val configDir: Path get() = FabricLoader.getInstance().configDir
+    private val settingsFile: Path get() = configDir.resolve(McpSettings.FILE_NAME)
+    private val tokenFile: Path get() = configDir.resolve(TOKEN_FILE_NAME)
+
+    const val TOKEN_FILE_NAME = "mc_tiny_tweak_mcp_token.txt"
+    const val SERVER_NAME = "minecraft"
+
+    @JvmStatic
+    val chat = ChatLog()
+
+    var settings = McpSettings()
+        private set
+
+    private var token = ""
+    private var server: McpHttpServer? = null
+
+    /** The port the server listens on, or null while it is off or failed to start. */
+    val port: Int? get() = server?.port
+
+    /** Why the server is not running although it is switched on. */
+    var startError: String? = null
+        private set
+
+    fun load() {
+        settings = try {
+            if (Files.exists(settingsFile)) McpSettings.parse(Files.readString(settingsFile)) else McpSettings()
+        } catch (e: Exception) {
+            McTinyTweak.logger.warn("Could not read {}, using defaults", settingsFile, e)
+            McpSettings()
+        }
+        token = readOrCreateToken()
+        applyRunning()
+    }
+
+    fun update(change: (McpSettings) -> McpSettings) {
+        val before = settings
+        settings = change(settings)
+        save()
+        if (before.enabled != settings.enabled || before.port != settings.port) {
+            stop()
+            applyRunning()
+        }
+    }
+
+    /** Replaces the token, which disconnects every agent set up with the old one. */
+    fun regenerateToken() {
+        token = newToken()
+        writeToken()
+        stop()
+        applyRunning()
+    }
+
+    /** A Claude Code command that connects an agent to this instance, or null while the server is off. */
+    fun setupCommand(): String? {
+        val bound = port ?: return null
+        return "claude mcp add --transport http $SERVER_NAME http://127.0.0.1:$bound${McpHttpServer.PATH} " +
+            "--header \"Authorization: Bearer $token\""
+    }
+
+    private fun applyRunning() {
+        startError = null
+        if (!settings.enabled || server != null) return
+        val protocol = McpProtocol(
+            serverName = "MC Tiny Tweak",
+            serverVersion = FabricLoader.getInstance().getModContainer(McTinyTweak.MOD_ID).map { it.metadata.version.friendlyString }.orElse("dev"),
+            tools = GameTools::all,
+            allowed = { settings.allows(it) },
+            onError = { tool, e -> McTinyTweak.logger.warn("MCP tool {} failed", tool, e) },
+        )
+        val created = McpHttpServer(token, protocol::handle)
+        try {
+            val bound = created.start(settings.port)
+            server = created
+            McTinyTweak.logger.info("MCP server listening on 127.0.0.1:{}", bound)
+        } catch (e: Exception) {
+            startError = e.message ?: e.javaClass.simpleName
+            McTinyTweak.logger.warn("Could not start the MCP server", e)
+        }
+    }
+
+    private fun stop() {
+        server?.stop()
+        server = null
+        AgentInput.releaseAll()
+    }
+
+    private fun save() {
+        try {
+            Files.createDirectories(settingsFile.parent)
+            Files.writeString(settingsFile, settings.serialize())
+        } catch (e: Exception) {
+            McTinyTweak.logger.warn("Could not save {}", settingsFile, e)
+        }
+    }
+
+    private fun readOrCreateToken(): String {
+        try {
+            if (Files.exists(tokenFile)) Files.readString(tokenFile).trim().takeIf { it.length >= 32 }?.let { return it }
+        } catch (e: Exception) {
+            McTinyTweak.logger.warn("Could not read {}, making a new token", tokenFile, e)
+        }
+        token = newToken()
+        writeToken()
+        return token
+    }
+
+    private fun writeToken() {
+        try {
+            Files.createDirectories(tokenFile.parent)
+            Files.writeString(tokenFile, token + "\n")
+        } catch (e: Exception) {
+            McTinyTweak.logger.warn("Could not save {}", tokenFile, e)
+        }
+    }
+
+    private fun newToken(): String {
+        val bytes = ByteArray(32)
+        SecureRandom().nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+}

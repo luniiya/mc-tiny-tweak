@@ -50,9 +50,12 @@ class PersonalDefaultsTest {
     }
 
     @Test
-    fun `sprint moves to Z so left control is free for freelook`() {
+    fun `sprint moves to Z and freelook takes middle click with pick block on P`() {
         assertEquals("key.keyboard.z", PersonalDefaults.keybinds["key.sprint"])
-        assertEquals("key.keyboard.left.control", PersonalDefaults.keybinds["key.mc_tiny_tweak.freelook"])
+        assertEquals("key.mouse.middle", PersonalDefaults.keybinds["key.mc_tiny_tweak.freelook"])
+        assertEquals("key.keyboard.p", PersonalDefaults.keybinds["key.pickItem"])
+        val onP = PersonalDefaults.keybinds.filterValues { it == "key.keyboard.p" }.keys.filterNot { it.startsWith("key.debug.") }.toSet()
+        assertEquals(setOf("key.pickItem"), onP, "pick block is the only bind on P")
         val sprint = KeyMapping("key.sprint", InputConstants.KEY_LCONTROL, KeyMapping.Category.MOVEMENT)
         assertEquals(InputConstants.getKey("key.keyboard.z"), sprint.defaultKey)
     }

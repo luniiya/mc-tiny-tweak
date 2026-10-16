@@ -3,6 +3,8 @@ package dev.luniiya.mctinytweak.client
 import com.mojang.blaze3d.platform.InputConstants
 import dev.luniiya.mctinytweak.McTinyTweak
 import dev.luniiya.mctinytweak.client.freelook.Freelook
+import dev.luniiya.mctinytweak.client.mcp.AgentInput
+import dev.luniiya.mctinytweak.client.mcp.Mcp
 import dev.luniiya.mctinytweak.client.tweaks.Tweaks
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -22,13 +24,16 @@ object McTinyTweakClient : ClientModInitializer {
         category,
     )
 
-    /** Hold to look around without turning. Defaults to left control. */
+    /** Hold to look around without turning. Defaults to middle click (pick block moves to P). */
     val freelookKey: KeyMapping = Freelook.keyMapping(category)
 
     override fun onInitializeClient() {
         Tweaks.load()
         KeyBindingHelper.registerKeyBinding(openMenuKey)
         KeyBindingHelper.registerKeyBinding(freelookKey)
+        Mcp.load()
+        // Before vanilla reads key states, so agent-held keys count for the whole tick.
+        ClientTickEvents.START_CLIENT_TICK.register(AgentInput::tick)
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             Freelook.tick(client, freelookKey)
             while (openMenuKey.consumeClick()) {

@@ -13,8 +13,8 @@ object Freelook {
 
     fun keyMapping(category: KeyMapping.Category) = KeyMapping(
         "key.${McTinyTweak.MOD_ID}.freelook",
-        InputConstants.Type.KEYSYM,
-        InputConstants.KEY_LCONTROL,
+        InputConstants.Type.MOUSE,
+        InputConstants.MOUSE_BUTTON_MIDDLE,
         category,
     )
 

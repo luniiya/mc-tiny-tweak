@@ -13,6 +13,18 @@ base {
 
 repositories {
     mavenCentral()
+    // Baritone publishes its jars only as GitHub release files.
+    ivy {
+        name = "Baritone releases"
+        url = uri("https://github.com/cabaletta/baritone/releases/download/")
+        patternLayout { artifact("v[revision]/[module]-[revision].[ext]") }
+        metadataSources { artifact() }
+        content { includeGroup("cabaletta") }
+    }
+    maven("https://babbaj.github.io/maven/") {
+        name = "Babbaj"
+        content { includeGroup("dev.babbaj") }
+    }
 }
 
 dependencies {
@@ -21,6 +33,12 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
+
+    // Optional: the MCP baritone tool talks to Baritone's API when it is installed. Dev runs include it.
+    modCompileOnly("cabaletta:baritone-api-fabric:${property("baritone_version")}")
+    modLocalRuntime("cabaletta:baritone-api-fabric:${property("baritone_version")}")
+    // Baritone nests its nether pathfinder jar, which dev runs do not load, so add it directly.
+    localRuntime("dev.babbaj:nether-pathfinder:${property("nether_pathfinder_version")}")
 
     testImplementation("net.fabricmc:fabric-loader-junit:${property("loader_version")}")
 }

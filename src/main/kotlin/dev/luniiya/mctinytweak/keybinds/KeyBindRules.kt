@@ -16,10 +16,10 @@ object KeyBindRules {
         bindNames.filter { it !in personalDefaults }
 
     /** How breaking and placing are bound. */
-    /** Freelook follows the mode: left click is free in tablet mode, so it takes over freelook there. */
+    /** Freelook follows the mode: left click is free in tablet mode, so it takes over freelook there; mouse mode uses middle click. */
     enum class InputMode(val attack: String, val use: String, val freelook: String) {
         TABLET("key.keyboard.q", "key.keyboard.e", "key.mouse.left"),
-        MOUSE("key.mouse.left", "key.mouse.right", "key.keyboard.left.control");
+        MOUSE("key.mouse.left", "key.mouse.right", "key.mouse.middle");
 
         companion object {
             /** Tablet only when both binds match it exactly; anything else shows as mouse mode. */
