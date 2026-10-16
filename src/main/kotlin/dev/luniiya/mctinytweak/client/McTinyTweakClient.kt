@@ -2,6 +2,7 @@ package dev.luniiya.mctinytweak.client
 
 import com.mojang.blaze3d.platform.InputConstants
 import dev.luniiya.mctinytweak.McTinyTweak
+import dev.luniiya.mctinytweak.client.freecam.AgentScreen
 import dev.luniiya.mctinytweak.client.freecam.AgentStatusCard
 import dev.luniiya.mctinytweak.client.freecam.Freecam
 import dev.luniiya.mctinytweak.client.freecam.FreecamHud
@@ -57,6 +58,7 @@ object McTinyTweakClient : ClientModInitializer {
             while (freecamKey.consumeClick()) Freecam.toggle()
             while (agentViewKey.consumeClick()) Freecam.toggleAgentView()
             Freecam.tick(client)
+            AgentScreen.tick(client)
             Freelook.tick(client, freelookKey)
             while (openMenuKey.consumeClick()) {
                 if (client.screen == null) client.setScreen(ModMenuScreen(null))

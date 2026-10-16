@@ -22,6 +22,11 @@ object AgentStatusCard {
     @Volatile
     var lastAction: String? = null
 
+    /** Where the card ended on the last frame, so the agent's screen panel goes right under it. */
+    @Volatile
+    var bottom = MARGIN
+        private set
+
     private const val MAX_WIDTH = 180
     private const val MARGIN = 6
     private const val LINE = 10
@@ -66,6 +71,7 @@ object AgentStatusCard {
         val x = graphics.guiWidth() - width - MARGIN - TooltipRenderUtil.PADDING_RIGHT
         val y = MARGIN + TooltipRenderUtil.PADDING_TOP + effectRows(player) * 25
         TooltipRenderUtil.renderTooltipBackground(graphics, x, y, width, height, null)
+        bottom = y + height + TooltipRenderUtil.PADDING_BOTTOM
         for ((index, text) in texts.withIndex()) {
             graphics.drawString(font, net.minecraft.locale.Language.getInstance().getVisualOrder(text), x, y + index * LINE, -1, true)
         }

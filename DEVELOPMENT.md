@@ -113,6 +113,14 @@ physical keys (`InputConstants.isKeyDown`), because key mappings are blocked whi
 `CameraFreecamMixin` moves the camera at the end of `Camera.setup` and marks it detached so the body renders.
 Agent screenshots show the agent's eyes for two frames unless they pass `view: "player"`.
 
+When the agent takes over, or the player presses R twice to come back from agent view, the freecam becomes a
+spectator camera: it circles the agent (5 blocks out, one lap per 30 s), eases toward its spot and toward looking at
+the agent, and pulls in when a block is in the way (`level.clip`). Any movement key or mouse turn ends it.
+
+Containers the agent opens (`AbstractContainerScreen`) never take the player's input while it plays: the mouse stays
+captured, clicks and keys are swallowed (except the mod menu, freecam and R keys), and in freecam the screen is drawn
+at half size under the status card, cropped to the container with a scissor and without the darkened background.
+
 ## Crafting tool
 
 `craft` (needs take over) finds an unlocked recipe-book entry for the item that fits the open grid (2x2 inventory,

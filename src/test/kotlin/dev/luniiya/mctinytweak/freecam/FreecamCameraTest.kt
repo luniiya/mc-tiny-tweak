@@ -74,6 +74,55 @@ class FreecamCameraTest {
     }
 
     @Test
+    fun `the spectator camera circles the target at its distance and looks at it`() {
+        val c = FreecamCamera().apply { start(5.0, 70.0, 0.0, 0f, 0f); startOrbit(0.0, 0.0) }
+        assertTrue(c.orbiting)
+        repeat(400) { c.orbitTick(0.0, 65.0, 0.0) }
+        assertEquals(FreecamCamera.ORBIT_RADIUS, Math.hypot(c.x, c.z), 0.3)
+        assertEquals(65.0 + FreecamCamera.ORBIT_HEIGHT, c.y, 0.05)
+        val look = dev.luniiya.mctinytweak.mcp.AgentControls.anglesTo(-c.x, 65.0 - c.y, -c.z)
+        assertEquals(0f, net.minecraft.util.Mth.wrapDegrees(look.yaw - c.yaw), 3f, "faces the target")
+        assertEquals(look.pitch, c.pitch, 3f)
+    }
+
+    @Test
+    fun `walls pull the spectator camera in, but not into the head`() {
+        val walled = FreecamCamera().apply { start(2.5, 66.5, 0.0, 0f, 0f); startOrbit(0.0, 0.0) }
+        repeat(400) { walled.orbitTick(0.0, 65.0, 0.0) { _, _, _ -> 0.5 } }
+        assertEquals(FreecamCamera.ORBIT_RADIUS * 0.5, Math.hypot(walled.x, walled.z), 0.3)
+        val buried = FreecamCamera().apply { start(2.5, 66.5, 0.0, 0f, 0f); startOrbit(0.0, 0.0) }
+        repeat(400) { buried.orbitTick(0.0, 65.0, 0.0) { _, _, _ -> 0.0 } }
+        assertEquals(FreecamCamera.ORBIT_RADIUS * FreecamCamera.MIN_ORBIT_FRACTION, Math.hypot(buried.x, buried.z), 0.3)
+    }
+
+    @Test
+    fun `the spectator camera eases instead of jumping when the target teleports`() {
+        val c = FreecamCamera().apply { start(5.0, 70.0, 0.0, 0f, 0f); startOrbit(0.0, 0.0) }
+        c.orbitTick(100.0, 65.0, 0.0)
+        assertTrue(c.x < 20.0, "moved only part of the way: ${c.x}")
+    }
+
+    @Test
+    fun `turning the mouse ends the spectator camera, and so does a fresh start`() {
+        val c = FreecamCamera().apply { start(5.0, 70.0, 0.0, 0f, 0f); startOrbit(0.0, 0.0) }
+        c.turn(0.0, 0.0)
+        assertTrue(c.orbiting, "no movement keeps it going")
+        c.turn(3.0, 0.0)
+        assertFalse(c.orbiting)
+        c.startOrbit(0.0, 0.0)
+        c.start(0.0, 0.0, 0.0, 0f, 0f)
+        assertFalse(c.orbiting)
+    }
+
+    @Test
+    fun `yaw is interpolated the short way around`() {
+        val c = FreecamCamera().apply { start(5.0, 70.0, 0.0, 179f, 0f); startOrbit(0.0, 0.0) }
+        c.orbitTick(0.0, 70.0, 0.0)
+        val halfway = c.yaw(0.5f)
+        assertTrue(kotlin.math.abs(net.minecraft.util.Mth.wrapDegrees(halfway - 179f)) <= kotlin.math.abs(net.minecraft.util.Mth.wrapDegrees(c.yaw - 179f)) + 0.01f)
+    }
+
+    @Test
     fun `turning clamps the pitch`() {
         val c = camera().apply { turn(100.0, 10_000.0) }
         assertEquals(90f, c.pitch)

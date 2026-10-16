@@ -32,7 +32,7 @@ abstract class CameraFreecamMixin {
 		if (!Freecam.shown()) return;
 		FreecamCamera camera = Freecam.camera;
 		this.detached = true;
-		setRotation(camera.getYaw(), camera.getPitch());
+		setRotation(camera.yaw(partialTick), camera.pitch(partialTick));
 		setPosition(camera.x(partialTick), camera.y(partialTick), camera.z(partialTick));
 	}
 }

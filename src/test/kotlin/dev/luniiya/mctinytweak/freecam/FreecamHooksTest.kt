@@ -34,6 +34,22 @@ class FreecamHooksTest {
     }
 
     @Test
+    fun `agent screens keep the player's mouse, keys and view`() {
+        assertTrue(hasHandler("net.minecraft.client.MouseHandler", "keepMouseForFreecam"))
+        assertTrue(hasHandler("net.minecraft.client.MouseHandler", "ignoreClicksOnAgentScreen"))
+        assertTrue(hasHandler("net.minecraft.client.KeyboardHandler", "keepKeysFromAgentScreen"))
+        assertTrue(hasHandler("net.minecraft.client.KeyboardHandler", "keepTypingFromAgentScreen"))
+        assertTrue(hasHandler("net.minecraft.client.renderer.GameRenderer", "drawAgentScreen"))
+        assertTrue(hasHandler("net.minecraft.client.gui.screens.Screen", "skipPanelBackground"))
+    }
+
+    @Test
+    fun `only containers count as the agent's screen, and only while it plays`() {
+        assertFalse(dev.luniiya.mctinytweak.client.freecam.AgentScreen.open(null))
+        withAgent { assertFalse(dev.luniiya.mctinytweak.client.freecam.AgentScreen.open(null)) }
+    }
+
+    @Test
     fun `the freecam and agent view keys keep working while the agent plays`() {
         withAgent {
             for (mapping in listOf(McTinyTweakClient.freecamKey, McTinyTweakClient.agentViewKey)) {

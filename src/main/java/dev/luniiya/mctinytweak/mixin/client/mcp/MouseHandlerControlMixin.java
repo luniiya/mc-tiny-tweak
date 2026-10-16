@@ -2,6 +2,7 @@ package dev.luniiya.mctinytweak.mixin.client.mcp;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import dev.luniiya.mctinytweak.client.freecam.AgentScreen;
 import dev.luniiya.mctinytweak.client.freecam.Freecam;
 import dev.luniiya.mctinytweak.client.mcp.AgentControl;
 import net.minecraft.client.Minecraft;
@@ -32,6 +33,6 @@ abstract class MouseHandlerControlMixin {
 
 	@Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
 	private void mc_tiny_tweak$blockScroll(long window, double x, double y, CallbackInfo ci) {
-		if (AgentControl.agentInControl() && minecraft.screen == null) ci.cancel();
+		if (AgentControl.agentInControl() && (minecraft.screen == null || AgentScreen.open())) ci.cancel();
 	}
 }
