@@ -25,6 +25,21 @@ dependencies {
     testImplementation("net.fabricmc:fabric-loader-junit:${property("loader_version")}")
 }
 
+loom {
+    runs {
+        // Multiplayer testing: start runServer, then runClient and runClient2. Client 2 joins localhost by itself.
+        named("server") {
+            runDir("run-server")
+        }
+        register("client2") {
+            client()
+            configName = "Minecraft Client 2"
+            runDir("run-client2")
+            programArgs("--username", "Tester2", "--quickPlayMultiplayer", "localhost")
+        }
+    }
+}
+
 kotlin {
     jvmToolchain(21)
 }

@@ -71,6 +71,7 @@ class ModLoadingTest {
         val lang = resource("assets/${McTinyTweak.MOD_ID}/lang/en_us.json")
         assertTrue(lang.has("key.${McTinyTweak.MOD_ID}.open_menu"))
         assertTrue(lang.has("key.${McTinyTweak.MOD_ID}.freelook"))
+        assertTrue(lang.has("screen.${McTinyTweak.MOD_ID}.tweaks.show_armor"))
         assertTrue(lang.has("key.category.${McTinyTweak.MOD_ID}.main"))
     }
 }

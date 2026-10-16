@@ -106,3 +106,9 @@ Hold the freelook key (left control by default; sprint is moved to Z in the pers
 ## Visual tweaks
 
 The burning overlay sits lower (`FireOverlay.EXTRA_DROP`) and shields held in first person render at 60% opacity (`ShieldOpacity.OPACITY`); tune either constant. Shields share the banner pattern code with banners, so `ShieldSpecialRendererMixin` flags a held shield while it submits and `BannerRendererMixin` only fades layers while that flag is set.
+
+## Tweaks and armor bar
+
+The mod menu has a Tweaks screen. Its settings are saved in `config/mc_tiny_tweak.properties` (`TweakSettings`). Show armor is off by default: players render without armor, and a four segment bar above their name shows one segment per worn piece in the material's color (`ArmorBar`).
+
+To test with two players, run `./gradlew :1.21.11:runServer` (offline mode, in `run-server/`), then `runClient`, and join `localhost`. Run `runClient2` as well: it starts as Tester2 in `run-client2/` and joins localhost by itself. Running the server means agreeing to the Minecraft EULA in `run-server/eula.txt`.

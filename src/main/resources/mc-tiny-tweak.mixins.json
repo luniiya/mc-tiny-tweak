@@ -5,6 +5,8 @@
   "mixins": [],
   "client": [
     "client.KeyMappingMixin",
+    "client.armorbar.AvatarRendererMixin",
+    "client.armorbar.HumanoidArmorLayerMixin",
     "client.freelook.CameraMixin",
     "client.freelook.MouseHandlerMixin",
     "client.keybinds.KeyBindsScreenAccessor",

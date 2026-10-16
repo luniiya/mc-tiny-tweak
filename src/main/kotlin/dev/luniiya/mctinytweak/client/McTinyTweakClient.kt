@@ -3,6 +3,7 @@ package dev.luniiya.mctinytweak.client
 import com.mojang.blaze3d.platform.InputConstants
 import dev.luniiya.mctinytweak.McTinyTweak
 import dev.luniiya.mctinytweak.client.freelook.Freelook
+import dev.luniiya.mctinytweak.client.tweaks.Tweaks
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
@@ -25,6 +26,7 @@ object McTinyTweakClient : ClientModInitializer {
     val freelookKey: KeyMapping = Freelook.keyMapping(category)
 
     override fun onInitializeClient() {
+        Tweaks.load()
         KeyBindingHelper.registerKeyBinding(openMenuKey)
         KeyBindingHelper.registerKeyBinding(freelookKey)
         ClientTickEvents.END_CLIENT_TICK.register { client ->

@@ -3,6 +3,7 @@
 build/
 **/build/
 **/run/
+**/run-*/
 **/logs/
 **/crash-reports/
 .idea/
