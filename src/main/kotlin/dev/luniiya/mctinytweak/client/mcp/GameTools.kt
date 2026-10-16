@@ -144,7 +144,7 @@ object GameTools {
                 ),
             ) { runCommand(it.requireString("command"), it.optInt("wait_ms", 1000, 0..10_000)) },
             McpTool(
-                "hold_keys", "Holds keys for a number of ticks (20 ticks = 1 second), then releases them. Names: ${AgentControls.KEY_ALIASES.keys.joinToString()}, or any key mapping id like key.hotbar.1. Holding attack mines the targeted block, automatically selecting an available harvesting tool.", Feature.INPUT,
+                "hold_keys", "Holds keys for a number of ticks (20 ticks = 1 second), then releases them. Names: ${AgentControls.KEY_ALIASES.keys.joinToString()}, or any key mapping id like key.hotbar.1. Holding attack automatically selects a harvesting tool. Water-bucket use refuses nearby higher lava that could replace the water and divert the flow.", Feature.INPUT,
                 Schema.obj(
                     Schema.stringList("keys", "The keys to hold together.", required = true),
                     Schema.integer("ticks", "How long to hold them.", required = true, min = 1, max = AgentControls.MAX_HOLD_TICKS),
@@ -152,7 +152,7 @@ object GameTools {
                 ),
             ) { holdKeys(it.stringList("keys"), it.optInt("ticks", 20, 1..AgentControls.MAX_HOLD_TICKS), it.get("wait")?.takeIf { w -> w.isJsonPrimitive }?.asBoolean ?: true) },
             McpTool(
-                "press_key", "Presses a key once, like a tap: open the inventory, drop an item, attack once.", Feature.INPUT,
+                "press_key", "Presses a key once, like a tap: open the inventory, drop an item, attack once. Water-bucket use refuses nearby higher lava that could replace the water and divert the flow.", Feature.INPUT,
                 Schema.obj(Schema.string("key", "A name from hold_keys or a key mapping id.", required = true)),
             ) { pressKey(it.requireString("key")) },
             McpTool("release_keys", "Releases every key the agent holds.", Feature.INPUT) { onClient { AgentInput.releaseAll() }; ToolResult.text("Released") },
@@ -283,6 +283,7 @@ object GameTools {
             addProperty("control", if (AgentControl.agentInControl()) "agent" else "player")
             addProperty("agent_keys_held", AgentInput.heldCount)
             addProperty("agent_mining_error", AgentInput.miningError)
+            addProperty("agent_use_error", AgentInput.useError)
             addProperty("baritone_installed", BaritoneBridge.installed)
         }
         ToolResult.text(gson.toJson(state))
@@ -506,6 +507,10 @@ object GameTools {
         onClient { minecraft ->
             minecraft.requirePlayer()
             val mappings = keys.map { mapping(minecraft, it) }
+            if (minecraft.options.keyUse in mappings) {
+                AgentUseSafety.prepare(minecraft)
+                AgentInput.useError = null
+            }
             if (minecraft.options.keyAttack in mappings) {
                 AgentMiningTools.prepare(minecraft)
                 AgentInput.miningError = null
@@ -519,12 +524,19 @@ object GameTools {
         if (keys.any { AgentControls.mappingName(it) == "key.attack" }) {
             onClient { AgentInput.miningError }?.let { throw ToolError(it) }
         }
+        if (keys.any { AgentControls.mappingName(it) == "key.use" }) {
+            onClient { AgentInput.useError }?.let { throw ToolError(it) }
+        }
         return ToolResult.text("Held ${keys.joinToString()} for $ticks ticks")
     }
 
     private fun pressKey(key: String): ToolResult {
         onClient { minecraft ->
             val mapping = mapping(minecraft, key)
+            if (mapping === minecraft.options.keyUse) {
+                AgentUseSafety.prepare(minecraft)
+                AgentInput.useError = null
+            }
             if (mapping === minecraft.options.keyAttack) AgentMiningTools.prepare(minecraft)
             AgentInput.click(mapping)
         }
