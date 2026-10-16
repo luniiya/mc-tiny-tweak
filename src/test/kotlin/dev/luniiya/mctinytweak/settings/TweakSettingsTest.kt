@@ -11,9 +11,17 @@ class TweakSettingsTest {
     }
 
     @Test
+    fun `fullbright is off by default`() {
+        assertFalse(TweakSettings().fullbright)
+        assertFalse(TweakSettings.parse("showArmor=true").fullbright)
+    }
+
+    @Test
     fun `settings survive saving and loading`() {
         val shown = TweakSettings(showArmor = true)
         assertEquals(shown, TweakSettings.parse(shown.serialize()))
+        val bright = TweakSettings(fullbright = true)
+        assertEquals(bright, TweakSettings.parse(bright.serialize()))
     }
 
     @Test

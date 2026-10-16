@@ -29,6 +29,7 @@
     "client.mcp.KeyMappingControlMixin",
     "client.mcp.MouseHandlerControlMixin",
     "client.visuals.BannerRendererMixin",
+    "client.visuals.LightTextureMixin",
     "client.visuals.ScreenEffectRendererMixin",
     "client.visuals.ShieldSpecialRendererMixin"
   ],

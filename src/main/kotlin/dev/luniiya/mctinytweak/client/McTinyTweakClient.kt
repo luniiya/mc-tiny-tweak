@@ -40,12 +40,16 @@ object McTinyTweakClient : ClientModInitializer {
     /** While an agent plays, swaps between the freecam and the agent's eyes. */
     val agentViewKey: KeyMapping = Freecam.agentViewKey(category)
 
+    /** Turns fullbright on and off. */
+    val fullbrightKey: KeyMapping = Tweaks.fullbrightKey(category)
+
     override fun onInitializeClient() {
         Tweaks.load()
         KeyBindingHelper.registerKeyBinding(openMenuKey)
         KeyBindingHelper.registerKeyBinding(freelookKey)
         KeyBindingHelper.registerKeyBinding(freecamKey)
         KeyBindingHelper.registerKeyBinding(agentViewKey)
+        KeyBindingHelper.registerKeyBinding(fullbrightKey)
         AgentStatusCard.register()
         FreecamHud.register()
         Mcp.load()
@@ -57,6 +61,7 @@ object McTinyTweakClient : ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             while (freecamKey.consumeClick()) Freecam.toggle()
             while (agentViewKey.consumeClick()) Freecam.toggleAgentView()
+            while (fullbrightKey.consumeClick()) Tweaks.toggleFullbright()
             Freecam.tick(client)
             AgentScreen.tick(client)
             Freelook.tick(client, freelookKey)

@@ -1,8 +1,13 @@
 package dev.luniiya.mctinytweak.client.tweaks
 
 import dev.luniiya.mctinytweak.McTinyTweak
+import com.mojang.blaze3d.platform.InputConstants
 import dev.luniiya.mctinytweak.settings.TweakSettings
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.client.KeyMapping
+import net.minecraft.client.Minecraft
+import net.minecraft.network.chat.Component
+import org.lwjgl.glfw.GLFW
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -15,6 +20,21 @@ object Tweaks {
 
     @JvmStatic
     fun showArmor() = settings.showArmor
+
+    @JvmStatic
+    fun fullbright() = settings.fullbright
+
+    /** Defaults to G, like the fullbright mod the user had before. */
+    fun fullbrightKey(category: KeyMapping.Category) =
+        KeyMapping("key.${McTinyTweak.MOD_ID}.fullbright", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, category)
+
+    fun toggleFullbright() {
+        update { it.copy(fullbright = !it.fullbright) }
+        Minecraft.getInstance().player?.displayClientMessage(
+            Component.translatable(if (fullbright()) "notice.mc_tiny_tweak.fullbright.on" else "notice.mc_tiny_tweak.fullbright.off"),
+            true,
+        )
+    }
 
     fun load() {
         settings = try {

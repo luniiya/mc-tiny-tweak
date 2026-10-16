@@ -4,12 +4,15 @@ package dev.luniiya.mctinytweak.settings
 data class TweakSettings(
     /** Off hides player armor and shows [dev.luniiya.mctinytweak.armorbar.ArmorBar] above the name instead. */
     val showArmor: Boolean = false,
+    /** Lights everything as if the player had night vision. */
+    val fullbright: Boolean = false,
 ) {
-    fun serialize() = "$SHOW_ARMOR=$showArmor\n"
+    fun serialize() = "$SHOW_ARMOR=$showArmor\n$FULLBRIGHT=$fullbright\n"
 
     companion object {
         const val FILE_NAME = "mc_tiny_tweak.properties"
         private const val SHOW_ARMOR = "showArmor"
+        private const val FULLBRIGHT = "fullbright"
 
         fun parse(text: String): TweakSettings {
             val values = text.lineSequence()
@@ -19,6 +22,7 @@ data class TweakSettings(
             val defaults = TweakSettings()
             return TweakSettings(
                 showArmor = values[SHOW_ARMOR]?.toBooleanStrictOrNull() ?: defaults.showArmor,
+                fullbright = values[FULLBRIGHT]?.toBooleanStrictOrNull() ?: defaults.fullbright,
             )
         }
     }
