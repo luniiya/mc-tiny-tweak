@@ -42,7 +42,7 @@ class AttributePresetsScreen(private val parent: Screen?) : Screen(Component.tra
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE) { onClose() }.bounds(width / 2 - 100, height - 26, 200, 20).build())
     }
 
-    private fun canSave() = minecraft.player != null && AttributePresets.isValidName(nameBox.value)
+    private fun canSave() = minecraft.player != null && PlayerAttributes.presets().canSave(nameBox.value)
 
     private fun save() {
         val player = minecraft.player ?: return
@@ -101,15 +101,16 @@ class AttributePresetsScreen(private val parent: Screen?) : Screen(Component.tra
     }
 
     private inner class Row(private val name: String) : ContainerObjectSelectionList.Entry<Row>() {
-        private val builtIn = name == AttributePresets.DEFAULT
-        private val label: Component = if (builtIn) {
+        private val builtIn = PlayerAttributes.presets().isBuiltIn(name)
+        // Built-in presets are gray, like other things you cannot change here.
+        private val label: Component = if (name == AttributePresets.DEFAULT) {
             Component.translatable("screen.mc_tiny_tweak.attributes.presets.default").withStyle(ChatFormatting.GRAY)
         } else {
-            Component.literal(name)
+            Component.literal(name).withStyle(if (builtIn) ChatFormatting.GRAY else ChatFormatting.WHITE)
         }
         private val loadButton = Button.builder(Component.translatable("screen.mc_tiny_tweak.attributes.presets.load")) { load(name) }
             .size(50, 20)
-            .apply { if (builtIn) tooltip(Tooltip.create(Component.translatable("screen.mc_tiny_tweak.attributes.presets.default.tooltip"))) }
+            .apply { if (name == AttributePresets.DEFAULT) tooltip(Tooltip.create(Component.translatable("screen.mc_tiny_tweak.attributes.presets.default.tooltip"))) }
             .build()
             .also { it.active = ItemEditorSession.canApplyAsOperator(minecraft) }
         private val deleteButton = Button.builder(Component.translatable("screen.mc_tiny_tweak.attributes.presets.delete")) { delete(name) }

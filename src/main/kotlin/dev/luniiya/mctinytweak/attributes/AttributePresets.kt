@@ -5,15 +5,25 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
 /**
- * Saved sets of base attribute values, by name. [DEFAULT] is built in: it is never stored
- * and loading it resets every attribute.
+ * Saved sets of base attribute values, by name. [DEFAULT] and the [builtIn] presets ship with the
+ * mod: they are never stored, cannot be saved over, and loading [DEFAULT] resets every attribute.
  */
-data class AttributePresets(val presets: Map<String, Map<String, Double>> = emptyMap()) {
-    val names: List<String> get() = listOf(DEFAULT) + presets.keys.sortedBy { it.lowercase() }
+data class AttributePresets(
+    val presets: Map<String, Map<String, Double>> = emptyMap(),
+    val builtIn: Map<String, Map<String, Double>> = emptyMap(),
+) {
+    val names: List<String>
+        get() = listOf(DEFAULT) + builtIn.keys.sortedBy { it.lowercase() } +
+            presets.keys.filter { !isBuiltIn(it) }.sortedBy { it.lowercase() }
+
+    fun isBuiltIn(name: String) = name.trim().equals(DEFAULT, ignoreCase = true) ||
+        builtIn.keys.any { it.equals(name.trim(), ignoreCase = true) }
+
+    fun canSave(name: String) = name.isNotBlank() && !isBuiltIn(name)
 
     fun save(name: String, values: Map<String, Double>): AttributePresets {
         val clean = name.trim()
-        require(isValidName(clean)) { "Preset name must not be empty or $DEFAULT" }
+        require(canSave(clean)) { "Preset name must not be empty or a built-in preset" }
         // Replace any preset whose name only differs in case, so names stay unique.
         val others = presets.filterKeys { !it.equals(clean, ignoreCase = true) }
         return copy(presets = others + (clean to values.filterValues { it.isFinite() }))
@@ -27,7 +37,7 @@ data class AttributePresets(val presets: Map<String, Map<String, Double>> = empt
      * [defaults] holds each attribute's reset value.
      */
     fun loadCommands(name: String, current: Map<String, Double>, defaults: Map<String, Double>): List<String> {
-        val target = if (name == DEFAULT) emptyMap() else presets[name] ?: return emptyList()
+        val target = values(name) ?: return emptyList()
         return current.keys.sorted().mapNotNull { id ->
             val wanted = target[id]
             when {
@@ -38,6 +48,14 @@ data class AttributePresets(val presets: Map<String, Map<String, Double>> = empt
         }
     }
 
+    /** The values a preset sets, empty for [DEFAULT], or null if there is no such preset. */
+    fun values(name: String): Map<String, Double>? = when (name) {
+        DEFAULT -> emptyMap()
+        in builtIn -> builtIn[name]
+        else -> presets[name]
+    }
+
+    /** Writes only the player's own presets; built-in ones live in the mod. */
     fun serialize(): String {
         val root = JsonObject()
         for ((name, values) in presets.toSortedMap()) {
@@ -49,15 +67,20 @@ data class AttributePresets(val presets: Map<String, Map<String, Double>> = empt
     companion object {
         const val DEFAULT = "Default"
         const val FILE_NAME = "mc_tiny_tweak_attribute_presets.json"
+        const val BUILT_IN_RESOURCE = "/mc_tiny_tweak/attribute-presets.json"
         private val GSON = GsonBuilder().setPrettyPrinting().create()
 
-        fun isValidName(name: String) = name.isNotBlank() && !name.trim().equals(DEFAULT, ignoreCase = true)
+        /** The presets bundled with the mod, in the same format as the player's file. */
+        fun bundled(): Map<String, Map<String, Double>> =
+            AttributePresets::class.java.getResourceAsStream(BUILT_IN_RESOURCE)
+                ?.use { parse(it.reader().readText()).presets }
+                .orEmpty()
 
         /** Reads presets, skipping anything that is not a name mapped to numbers. */
-        fun parse(text: String): AttributePresets {
+        fun parse(text: String, builtIn: Map<String, Map<String, Double>> = emptyMap()): AttributePresets {
             val root = JsonParser.parseString(text).takeIf { it.isJsonObject }?.asJsonObject ?: return AttributePresets()
             val presets = root.entrySet()
-                .filter { (name, value) -> isValidName(name) && value.isJsonObject }
+                .filter { (name, value) -> !name.trim().equals(DEFAULT, ignoreCase = true) && name.isNotBlank() && value.isJsonObject }
                 .associate { (name, value) ->
                     name to value.asJsonObject.entrySet()
                         .mapNotNull { (id, number) ->
@@ -66,7 +89,7 @@ data class AttributePresets(val presets: Map<String, Map<String, Double>> = empt
                         }
                         .toMap()
                 }
-            return AttributePresets(presets)
+            return AttributePresets(presets, builtIn)
         }
     }
 }

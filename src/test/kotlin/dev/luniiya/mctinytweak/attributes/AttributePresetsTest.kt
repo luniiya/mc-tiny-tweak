@@ -14,7 +14,37 @@ class AttributePresetsTest {
         assertEquals(listOf("Default", "tiny"), presets.names)
         assertThrows<IllegalArgumentException> { presets.save("default", defaults) }
         assertThrows<IllegalArgumentException> { presets.save("  ", defaults) }
-        assertFalse(AttributePresets.isValidName(" Default "))
+        assertFalse(presets.canSave(" Default "))
+    }
+
+    @Test
+    fun `built-in presets come after default, load, and cannot be saved over or stored`() {
+        val builtIn = mapOf("god" to mapOf("minecraft:max_health" to 1024.0))
+        val presets = AttributePresets(builtIn = builtIn).save("mine", defaults)
+        assertEquals(listOf("Default", "god", "mine"), presets.names)
+        assertFalse(presets.canSave("GOD"))
+        assertThrows<IllegalArgumentException> { presets.save("god", defaults) }
+        assertEquals(
+            listOf("attribute @s minecraft:max_health base set 1024"),
+            presets.loadCommands("god", defaults, defaults),
+        )
+        assertEquals(setOf("mine"), AttributePresets.parse(presets.serialize()).presets.keys)
+    }
+
+    @Test
+    fun `a saved preset with a built-in name is hidden behind the built-in one`() {
+        val builtIn = mapOf("god" to mapOf("minecraft:max_health" to 1024.0))
+        val presets = AttributePresets.parse("""{"god": {"minecraft:max_health": 5}}""", builtIn)
+        assertEquals(listOf("Default", "god"), presets.names)
+        assertEquals(mapOf("minecraft:max_health" to 1024.0), presets.values("god"))
+    }
+
+    @Test
+    fun `the bundled presets are the user's boosted, default smol and god`() {
+        val bundled = AttributePresets.bundled()
+        assertEquals(setOf("boosted", "default smol", "god"), bundled.keys)
+        assertEquals(0.85, bundled.getValue("default smol")["minecraft:scale"])
+        assertEquals(1024.0, bundled.getValue("god")["minecraft:max_health"])
     }
 
     @Test

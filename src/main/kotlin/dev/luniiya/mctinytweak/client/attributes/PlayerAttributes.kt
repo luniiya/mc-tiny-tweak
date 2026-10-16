@@ -16,6 +16,7 @@ import java.nio.file.Path
 object PlayerAttributes {
     private val file: Path get() = FabricLoader.getInstance().configDir.resolve(AttributePresets.FILE_NAME)
 
+    private val builtIn by lazy { AttributePresets.bundled() }
     var presets = AttributePresets()
         private set
     private var loaded = false
@@ -33,7 +34,7 @@ object PlayerAttributes {
     fun load(player: LocalPlayer, name: String): Int {
         val commands = presets().loadCommands(name, baseValues(player), defaults(player))
         commands.forEach(player.connection::sendCommand)
-        val target = presets().presets[name].orEmpty()
+        val target = presets().values(name).orEmpty()
         for (holder in holders(player)) {
             val instance = player.attributes.getInstance(holder) ?: continue
             instance.baseValue = target[holder.registeredName] ?: default(holder)
@@ -45,10 +46,10 @@ object PlayerAttributes {
         if (!loaded) {
             loaded = true
             presets = try {
-                if (Files.exists(file)) AttributePresets.parse(Files.readString(file)) else AttributePresets()
+                if (Files.exists(file)) AttributePresets.parse(Files.readString(file), builtIn) else AttributePresets(builtIn = builtIn)
             } catch (e: Exception) {
                 McTinyTweak.logger.warn("Could not read {}, starting with no presets", file, e)
-                AttributePresets()
+                AttributePresets(builtIn = builtIn)
             }
         }
         return presets
