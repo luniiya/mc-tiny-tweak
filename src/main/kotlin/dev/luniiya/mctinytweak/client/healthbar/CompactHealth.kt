@@ -29,11 +29,14 @@ object CompactHealth {
         graphics.fill(x, thickY, x + WIDTH, thickY + THICK_HEIGHT, border)
         draw(graphics, HealthBars.thick(hp, max, gold), HealthBars.LAYER, x + 1, thickY + 1, THICK_HEIGHT - 2, shade = true, width = INNER)
 
-        // Thin bar: the whole health. It only has side borders, so its colors line up with the thick bar's.
+        // Thin bar: the whole health. Its side borders match the thick bar's so the colors line up;
+        // top and bottom only get half a pixel, drawn at half scale, so the bar stays thin.
         val thinY = y + THICK_HEIGHT + 1
         val total = max + gold
-        graphics.fill(x, thinY, x + 1, thinY + THIN_HEIGHT, border)
-        graphics.fill(x + WIDTH - 1, thinY, x + WIDTH, thinY + THIN_HEIGHT, border)
+        graphics.pose().pushMatrix()
+        graphics.pose().scale(0.5f, 0.5f)
+        graphics.fill(x * 2, thinY * 2 - 1, (x + WIDTH) * 2, (thinY + THIN_HEIGHT) * 2 + 1, border)
+        graphics.pose().popMatrix()
         draw(graphics, HealthBars.thin(hp, max, gold), total, x + 1, thinY, THIN_HEIGHT, shade = false, width = INNER)
         // A dark line between layers when there is room for it.
         val edges = HealthBars.layerEdges(max, gold)
