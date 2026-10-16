@@ -7,6 +7,7 @@
   "key.mc_tiny_tweak.fullbright": "Toggle fullbright",
   "screen.mc_tiny_tweak.menu": "MC Tiny Tweak",
   "screen.mc_tiny_tweak.tweaks": "Tweaks",
+  "screen.mc_tiny_tweak.op": "OP",
   "screen.mc_tiny_tweak.tweaks.show_armor": "Show armor",
   "screen.mc_tiny_tweak.tweaks.fullbright": "Fullbright",
   "screen.mc_tiny_tweak.tweaks.fullbright.tooltip": "Lights everything like night vision, even caves at night. Key: %s",
