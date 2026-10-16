@@ -51,4 +51,19 @@ class ModLoadingTest {
             }
         }
     }
+
+    @Test
+    fun `client entrypoint is declared with the Kotlin adapter and its class exists`() {
+        val entrypoint = resource("fabric.mod.json").getAsJsonObject("entrypoints")
+            .getAsJsonArray("client").single().asJsonObject
+        assertEquals("kotlin", entrypoint["adapter"].asString)
+        Class.forName(entrypoint["value"].asString, false, javaClass.classLoader)
+    }
+
+    @Test
+    fun `English translations cover the menu keybind`() {
+        val lang = resource("assets/${McTinyTweak.MOD_ID}/lang/en_us.json")
+        assertTrue(lang.has("key.${McTinyTweak.MOD_ID}.open_menu"))
+        assertTrue(lang.has("key.category.${McTinyTweak.MOD_ID}.main"))
+    }
 }

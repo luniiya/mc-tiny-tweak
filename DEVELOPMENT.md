@@ -58,8 +58,26 @@ the Minecraft target; the mod metadata currently permits exactly that version.
 Always add unit tests for changed logic and regression tests for fixes. Fabric
 Loader JUnit runs tests with the loader environment. Keep pure logic independent
 of Minecraft when possible. The initial tests verify loading metadata, Kotlin
-entrypoint resolution, and packaged mixin configuration.
+entrypoint resolution, and packaged mixin configuration. Tests that need items
+or registries call `MinecraftTestSupport`, which bootstraps vanilla and builds
+the vanilla registry lookup.
 
 Add server or client GameTests with the first gameplay feature that needs them.
 GameTests and a real client smoke test are needed to validate actual injections;
 passing unit tests alone does not prove a mixin works in game.
+
+## Item editor
+
+Press `\` in game to open the mod menu (rebindable under Controls, MC Tiny
+Tweak). The item editor edits the held item and needs creative mode to apply.
+Logic lives in `itemeditor/` and is unit tested; screens live in
+`client/itemeditor/`. `ItemDraft` applies edits on top of the held stack and
+keeps every component it does not edit. The raw editor reads and writes the
+whole stack as SNBT through `ItemStack.CODEC`.
+
+Creative Editor (https://github.com/Ruukas97/Creative-Editor) is the feature
+reference. It is GPL-3.0, so its code is not copied here.
+
+Readable Minecraft source for reference comes from
+`./gradlew :1.21.11:genSources`. Keep decompiled source and other material
+that must not be published outside this repository.
