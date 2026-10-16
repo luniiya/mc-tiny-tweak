@@ -7,7 +7,7 @@ package dev.luniiya.mctinytweak.baritone
 object BaritoneDefaults {
     const val RESOURCE = "/mc_tiny_tweak/baritone-defaults.txt"
 
-    /** Marks an instance that already got the mod's defaults, so later changes are never overwritten. */
+    /** Lists the defaults an instance already got, one name per line, so the player's later changes are kept. */
     const val APPLIED_MARKER = "mc_tiny_tweak_baritone_defaults_applied"
 
     /** Setting names, lowercased, mapped to their value text. Blank lines and `#` comments are skipped. */
@@ -20,6 +20,16 @@ object BaritoneDefaults {
             put(line.substring(0, space).lowercase(), line.substring(space + 1).trim())
         }
     }
+
+    /** The defaults this instance has not had yet: all of them at first, and later only newly added ones. */
+    fun notYetApplied(defaults: Map<String, String>, markerText: String?): Map<String, String> {
+        val applied = markerText?.lineSequence()?.map { it.trim().lowercase() }?.filter { it.isNotEmpty() && !it.startsWith("#") }?.toSet() ?: emptySet()
+        return defaults.filterKeys { it !in applied }
+    }
+
+    fun markerText(applied: Collection<String>) =
+        "# Baritone defaults from MC Tiny Tweak already applied here. Remove a line to apply it again.\n" +
+            applied.sorted().joinToString("") { "$it\n" }
 
     fun load(): Map<String, String> =
         BaritoneDefaults::class.java.getResourceAsStream(RESOURCE)?.use { parse(it.reader().readText()) } ?: emptyMap()

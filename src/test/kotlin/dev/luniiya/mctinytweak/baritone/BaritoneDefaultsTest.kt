@@ -25,6 +25,20 @@ class BaritoneDefaultsTest {
     }
 
     @Test
+    fun `defaults added later reach instances that already got the old ones`() {
+        val defaults = mapOf("allowinventory" to "true", "freelook" to "false")
+        assertEquals(defaults, BaritoneDefaults.notYetApplied(defaults, null), "a new instance gets every default")
+        val marker = BaritoneDefaults.markerText(listOf("allowinventory"))
+        assertEquals(mapOf("freelook" to "false"), BaritoneDefaults.notYetApplied(defaults, marker))
+        assertEquals(emptyMap<String, String>(), BaritoneDefaults.notYetApplied(defaults, BaritoneDefaults.markerText(defaults.keys)))
+    }
+
+    @Test
+    fun `the shipped defaults turn off Baritone's free look`() {
+        assertEquals("false", BaritoneDefaults.load()["freelook"], "the player must look where Baritone goes")
+    }
+
+    @Test
     fun `only true and false count as on or off values`() {
         assertTrue(BaritoneDefaults.isBooleanText("TRUE"))
         assertTrue(BaritoneDefaults.isBooleanText(" false "))

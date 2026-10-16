@@ -49,7 +49,7 @@ object McTinyTweakClient : ClientModInitializer {
         FreecamHud.register()
         Mcp.load()
         ClientLifecycleEvents.CLIENT_STARTED.register {
-            if (BaritoneBridge.installed) BaritoneSettings.applyModDefaultsOnce()
+            if (BaritoneBridge.installed) BaritoneSettings.applyNewModDefaults()
         }
         // Before vanilla reads key states, so agent-held keys count for the whole tick.
         ClientTickEvents.START_CLIENT_TICK.register(AgentInput::tick)

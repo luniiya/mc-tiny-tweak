@@ -66,11 +66,18 @@ object BaritoneSettings {
         save()
     }
 
-    /** Gives a new instance the mod's defaults once; after that the player's own changes are kept. */
-    fun applyModDefaultsOnce() {
+    /** Gives this instance each mod default once, including ones added in later versions; the player's changes are kept. */
+    fun applyNewModDefaults() {
         val marker = FabricLoader.getInstance().configDir.resolve(BaritoneDefaults.APPLIED_MARKER)
-        if (Files.exists(marker)) return
-        for ((name, value) in modDefaults) {
+        val before = try {
+            if (Files.exists(marker)) Files.readString(marker) else null
+        } catch (e: Exception) {
+            McTinyTweak.logger.warn("Could not read {}", marker, e)
+            return
+        }
+        val pending = BaritoneDefaults.notYetApplied(modDefaults, before)
+        if (pending.isEmpty()) return
+        for ((name, value) in pending) {
             try {
                 set(name, value, save = false)
             } catch (e: IllegalArgumentException) {
@@ -80,7 +87,7 @@ object BaritoneSettings {
         save()
         try {
             Files.createDirectories(marker.parent)
-            Files.writeString(marker, "Baritone defaults from MC Tiny Tweak were applied. Delete to apply them again.\n")
+            Files.writeString(marker, BaritoneDefaults.markerText(modDefaults.keys))
         } catch (e: Exception) {
             McTinyTweak.logger.warn("Could not write {}", marker, e)
         }

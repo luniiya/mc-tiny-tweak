@@ -116,7 +116,7 @@ Agent screenshots show the agent's eyes for two frames unless they pass `view: "
 ## Baritone settings
 
 Mod menu > MCP > Baritone settings lists every Baritone setting with search. `mc_tiny_tweak/baritone-defaults.txt`
-holds the mod's own Baritone defaults: applied once per instance (marker file in the config folder) and again by
+holds the mod's own Baritone defaults (freeLook off, so the player looks where it goes). Each line is applied once per instance, including lines added later (marker file in the config folder), and all again by
 Reset. Agents use `baritone_settings`, `baritone_set_setting` and `baritone_reset_settings`, without take over.
 On/off settings only accept true or false, since Baritone reads anything else as false.
 

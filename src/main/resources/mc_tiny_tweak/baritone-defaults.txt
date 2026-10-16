@@ -1,8 +1,10 @@
 # MC Tiny Tweak's Baritone defaults, in Baritone's settings.txt format: one "name value" per line.
-# Applied once to every new instance, and again by Reset in Mod menu > MCP > Baritone settings.
+# Each line is applied once per instance (also lines added in later versions), and all again by Reset in Mod menu > MCP > Baritone settings.
 # Settings not listed keep Baritone's own default.
 
 # Let Baritone move items to the hotbar to pick the right tool or block.
 allowInventory true
 # Keep away from mobs while pathing.
 avoidance true
+# Turn the player's head where Baritone walks and mines, so watching from freecam makes sense.
+freeLook false
