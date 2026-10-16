@@ -14,6 +14,7 @@ import dev.luniiya.mctinytweak.client.mcp.AgentInput
 import dev.luniiya.mctinytweak.client.mcp.BaritoneBridge
 import dev.luniiya.mctinytweak.client.mcp.BaritoneSettings
 import dev.luniiya.mctinytweak.client.mcp.Mcp
+import dev.luniiya.mctinytweak.client.mcp.PortalBuilder
 import dev.luniiya.mctinytweak.client.tweaks.Tweaks
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
@@ -67,6 +68,7 @@ object McTinyTweakClient : ClientModInitializer {
         // Before vanilla reads key states, so agent-held keys count for the whole tick.
         ClientTickEvents.START_CLIENT_TICK.register(AgentInput::tick)
         ClientTickEvents.END_CLIENT_TICK.register { client ->
+            PortalBuilder.tick(client)
             while (freecamKey.consumeClick()) Freecam.toggle()
             while (agentViewKey.consumeClick()) Freecam.toggleAgentView()
             while (fullbrightKey.consumeClick()) Tweaks.toggleFullbright()

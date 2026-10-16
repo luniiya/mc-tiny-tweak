@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "mc_tiny_tweak_gametest",
+  "version": "1.0.0",
+  "name": "MC Tiny Tweak GameTests",
+  "entrypoints": {
+    "fabric-gametest": ["dev.luniiya.mctinytweak.gametest.PortalGameTests"]
+  },
+  "depends": {
+    "mc_tiny_tweak": "*",
+    "fabric-gametest-api-v1": "*",
+    "fabric-language-kotlin": "*"
+  }
+}

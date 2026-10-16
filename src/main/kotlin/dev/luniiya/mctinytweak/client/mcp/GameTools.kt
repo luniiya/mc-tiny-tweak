@@ -8,6 +8,9 @@ import dev.luniiya.mctinytweak.baritone.BaritoneDefaults
 import dev.luniiya.mctinytweak.client.freecam.Freecam
 import dev.luniiya.mctinytweak.mcp.AgentControls
 import dev.luniiya.mctinytweak.mcp.BlockInspection
+import dev.luniiya.mctinytweak.mcp.NetherPortalPlan
+import dev.luniiya.mctinytweak.mcp.WorldCreationSpec
+import dev.luniiya.mctinytweak.mcp.ChatWake
 import dev.luniiya.mctinytweak.mcp.ContainerClicks
 import dev.luniiya.mctinytweak.mcp.CraftingFit
 import dev.luniiya.mctinytweak.mcp.McpSettings.Feature
@@ -27,6 +30,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.Screenshot
 import net.minecraft.client.gui.screens.ConnectScreen
 import net.minecraft.client.gui.screens.TitleScreen
+import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.multiplayer.ServerData
 import net.minecraft.client.multiplayer.ServerList
@@ -35,6 +39,13 @@ import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.player.StackedItemContents
+import net.minecraft.world.Difficulty
+import net.minecraft.world.level.GameType
+import net.minecraft.world.level.LevelSettings
+import net.minecraft.world.level.WorldDataConfiguration
+import net.minecraft.world.level.gamerules.GameRules
+import net.minecraft.world.level.levelgen.WorldOptions
+import net.minecraft.world.level.levelgen.presets.WorldPresets
 import net.minecraft.world.inventory.AbstractCraftingMenu
 import net.minecraft.world.inventory.ClickType
 import net.minecraft.world.item.ItemStack
@@ -61,6 +72,7 @@ import java.util.function.Supplier
  */
 object GameTools {
     private val gson = GsonBuilder().disableHtmlEscaping().create()
+    private var creatingWorld = false
 
     val all: List<McpTool> by lazy {
         listOf(
@@ -185,6 +197,25 @@ object GameTools {
             ) { baritone(it.requireString("command"), it.optInt("wait_ms", 1000, 0..10_000)) },
             McpTool("baritone_status", "Whether Baritone is pathing, which process is in control (mining, following...) and its goal.", Feature.BARITONE) { baritoneStatus() },
             McpTool(
+                "build_nether_portal", "Needs take_over and Baritone. Builds a minimum 10-obsidian portal on a clear dry site within 16 blocks, using carried obsidian and 4 cobblestone corners. Bottom-left x/y/z, width along axis x (default) or z. Requires solid ground below the 4-block bottom row. Automatically lights it with carried flint_and_steel unless ignite=false. Asynchronous: poll portal_status. Extra scaffold blocks may be needed. Refuses existing obstructions/lava/unknown chunks; does not grant materials. Any baritone command cancels the portal job.", Feature.BARITONE,
+                Schema.obj(
+                    Schema.integer("x", "Bottom-left block X.", required = true, min = -29_999_995, max = 29_999_995),
+                    Schema.integer("y", "Bottom row block Y.", required = true, min = -30_000_000, max = 30_000_000),
+                    Schema.integer("z", "Bottom-left block Z.", required = true, min = -29_999_995, max = 29_999_995),
+                    Schema.string("axis", "Width direction: x or z (default x)."),
+                    Schema.Property("ignite", JsonObject().apply { addProperty("type", "boolean") }, false),
+                ),
+            ) { args ->
+                requireTakeOver("build_nether_portal")
+                val plan = try { NetherPortalPlan(BlockPos(args.optInt("x", 0, -29_999_995..29_999_995), args.optInt("y", 0, -30_000_000..30_000_000), args.optInt("z", 0, -29_999_995..29_999_995)), args.optString("axis") ?: "x") }
+                    catch (error: IllegalArgumentException) { throw ToolError(error.message ?: "Invalid portal site") }
+                ToolResult.text(gson.toJson(onClient { PortalBuilder.start(it, plan, args.get("ignite")?.asBoolean ?: true) }))
+            },
+            McpTool("portal_status", "Portal builder phase, progress and failure reason. frame_ready means ignition was disabled; complete means all six portal cells activated.", Feature.BARITONE) { ToolResult.text(gson.toJson(onClient { PortalBuilder.status() })) },
+            McpTool("cancel_portal", "Needs take_over. Cancels an active portal job and its Baritone process.", Feature.BARITONE) {
+                requireTakeOver("cancel_portal"); onClient { PortalBuilder.cancel() }; ToolResult.text(gson.toJson(onClient { PortalBuilder.status() }))
+            },
+            McpTool(
                 "baritone_settings", "Lists Baritone settings as `name (type) = value [default]`. Without a query, lists only the ones changed from the mod's defaults. Works without take_over.", Feature.BARITONE,
                 Schema.obj(Schema.string("query", "Words that must all appear in the setting name, for example `parkour` or `allow break`.")),
             ) { baritoneSettings(it.optString("query")) },
@@ -222,6 +253,23 @@ object GameTools {
                 Schema.obj(Schema.string("address", "For example `localhost` or `play.example.net:25565`.", required = true)),
             ) { joinServer(it.requireString("address")) },
             McpTool("list_worlds", "The singleplayer worlds, newest played first, with the id open_world takes.", Feature.WORLDS) { listWorlds() },
+            McpTool(
+                "create_world", "Needs take_over, no world open, and the title/world-selection screen. Creates and opens a NEW isolated singleplayer world; refuses existing save ids. Defaults: survival, normal difficulty, normal terrain, commands disabled. Use mode=creative, flat=true, commands=true for an OP test world. Creation is queued; check get_state until connected or inspect the error screen.", Feature.WORLDS,
+                Schema.obj(
+                    Schema.string("id", "New save folder: 1-64 letters/digits/underscores/hyphens.", required = true),
+                    Schema.string("name", "Display name (defaults to id)."),
+                    Schema.string("mode", "survival (default) or creative."),
+                    Schema.string("difficulty", "peaceful, easy, normal (default), hard."),
+                    Schema.string("seed", "Optional vanilla numeric or text seed."),
+                    Schema.Property("flat", JsonObject().apply { addProperty("type", "boolean") }, false),
+                    Schema.Property("commands", JsonObject().apply { addProperty("type", "boolean") }, false),
+                ),
+            ) { args ->
+                requireTakeOver("create_world")
+                val spec = try { WorldCreationSpec(args.requireString("id"), args.optString("name") ?: args.requireString("id"), args.optString("mode") ?: "survival", args.optString("difficulty") ?: "normal", args.get("flat")?.asBoolean ?: false, args.get("commands")?.asBoolean ?: false, args.optString("seed")) }
+                    catch (error: IllegalArgumentException) { throw ToolError(error.message ?: "Invalid world settings") }
+                createWorld(spec)
+            },
             McpTool(
                 "open_world", "Needs take_over and no world open. Opens a singleplayer world by its id from list_worlds.", Feature.WORLDS,
                 Schema.obj(Schema.string("id", "The world's folder id.", required = true)),
@@ -285,6 +333,7 @@ object GameTools {
             addProperty("agent_mining_error", AgentInput.miningError)
             addProperty("agent_use_error", AgentInput.useError)
             addProperty("baritone_installed", BaritoneBridge.installed)
+            add("portal_builder", PortalBuilder.status())
         }
         ToolResult.text(gson.toJson(state))
     }
@@ -438,7 +487,7 @@ object GameTools {
         if (text.startsWith("/")) throw ToolError("Use run_command for commands")
         if (text.length > CHAT_LIMIT) throw ToolError("Chat messages are at most $CHAT_LIMIT characters")
         requireTakeOver("send_chat")
-        onClient { it.requirePlayer().connection.sendChat(text) }
+        onClient { val player = it.requirePlayer(); ChatWake.sentByAgent(text); player.connection.sendChat(text) }
         return ToolResult.text("Sent")
     }
 
@@ -455,7 +504,7 @@ object GameTools {
         requireTakeOver("baritone")
         val text = command.trim().removePrefix("#")
         val before = Mcp.chat.lastId()
-        val known = onClient { it.requirePlayer(); BaritoneBridge.execute(text) }
+        val known = onClient { it.requirePlayer(); PortalBuilder.cancel("Replaced by Baritone command"); BaritoneBridge.execute(text) }
         if (!known) throw ToolError("Baritone does not know the command `$text`. Try `help`." + feedbackSince(before, 0))
         return ToolResult.text("Ran #$text" + feedbackSince(before, waitMillis))
     }
@@ -583,6 +632,25 @@ object GameTools {
             screen.title.string.ifEmpty { screen.javaClass.simpleName }
         }
         return ToolResult.text(if (closed == null) "No screen was open" else "Closed $closed")
+    }
+
+    private fun createWorld(spec: WorldCreationSpec): ToolResult = onClient { minecraft ->
+        if (minecraft.level != null || minecraft.singleplayerServer != null || creatingWorld) throw ToolError("Leave the current world and wait for creation to finish first")
+        if (minecraft.screen !is TitleScreen && minecraft.screen !is SelectWorldScreen) throw ToolError("Return to the title or world-selection screen first")
+        if (Files.exists(minecraft.levelSource.getLevelPath(spec.id))) throw ToolError("Save id already exists; choose a new id or use open_world")
+        creatingWorld = true
+        // schedule queues even on the client thread; registry loading must not block this tool's ten-second RPC budget.
+        minecraft.schedule {
+            try {
+                val data = WorldDataConfiguration.DEFAULT
+                val settings = LevelSettings(spec.name, if (spec.mode == "creative") GameType.CREATIVE else GameType.SURVIVAL, false,
+                    Difficulty.valueOf(spec.difficulty.uppercase(java.util.Locale.ROOT)), spec.commands, GameRules(data.enabledFeatures()), data)
+                val options = WorldOptions.defaultWithRandomSeed().let { if (spec.seed == null) it else it.withSeed(WorldOptions.parseSeed(spec.seed)) }
+                minecraft.createWorldOpenFlows().createFreshLevel(spec.id, settings, options,
+                    { registries -> if (spec.flat) WorldPresets.createFlatWorldDimensions(registries) else WorldPresets.createNormalWorldDimensions(registries) }, TitleScreen())
+            } finally { creatingWorld = false }
+        }
+        ToolResult.text("Queued new singleplayer world ${spec.id}; check get_state until connected")
     }
 
     private fun listServers(): ToolResult = onClient { minecraft ->

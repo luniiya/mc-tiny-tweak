@@ -34,11 +34,34 @@ class McpChatEventsTest {
 
     @Test
     fun `only incoming public chat wakes an agent`() {
-        assertTrue(ChatWake.isIncoming("<Player1> hey Sol", "Sol"))
+        val filter = ChatWakeFilter()
+        filter.sentByAgent("hello")
+        assertTrue(filter.isIncoming("<Player1> hey Sol", "Sol"))
         for (text in listOf("<Sol> hello", "[Baritone] mining", "Gave Sol iron", "Player1 joined the game", "[MC Tiny Tweak] action")) {
-            assertFalse(ChatWake.isIncoming(text, "Sol"), text)
+            assertFalse(filter.isIncoming(text, "Sol"), text)
         }
-        assertFalse(ChatWake.isIncoming("<Player1> hello", null))
+        assertFalse(filter.isIncoming("<Player1> hello", null))
+    }
+
+    @Test
+    fun `human chat through the local player wakes while exact agent echoes do not`() {
+        val filter = ChatWakeFilter()
+        filter.sentByAgent("I am building")
+        assertTrue(filter.isIncoming("<Sol> damn impressive", "Sol"))
+        assertFalse(filter.isIncoming("<Sol> I am building", "Sol"))
+        assertTrue(filter.isIncoming("<Sol> I am building", "Sol"), "A later human repetition must wake")
+    }
+
+    @Test
+    fun `undelivered agent echoes expire and the pending echo list is bounded`() {
+        var now = 0L
+        val filter = ChatWakeFilter { now }
+        filter.sentByAgent("lost")
+        now = 30_000
+        assertTrue(filter.isIncoming("<Sol> lost", "Sol"))
+        repeat(33) { filter.sentByAgent("message $it") }
+        assertTrue(filter.isIncoming("<Sol> message 0", "Sol"))
+        assertFalse(filter.isIncoming("<Sol> message 32", "Sol"))
     }
 
     @Test

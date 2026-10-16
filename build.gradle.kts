@@ -63,6 +63,16 @@ loom {
     }
 }
 
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "mc_tiny_tweak_gametest"
+        enableGameTests = true
+        enableClientGameTests = false
+        eula = true
+    }
+}
+
 kotlin {
     jvmToolchain(21)
 }

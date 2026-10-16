@@ -59,12 +59,31 @@ class McpChatEvents(private val enabled: () -> Boolean) {
     }
 }
 
-/** Public player chat wakes listeners; own echoes, tool feedback and system notices do not. */
-object ChatWake {
-    private val publicChat = Regex("^<([^>]+)>\\s+.+", RegexOption.DOT_MATCHES_ALL)
-    @JvmStatic fun isIncoming(text: String, localName: String?): Boolean {
-        if (localName == null) return false
-        val sender = publicChat.matchEntire(text)?.groupValues?.get(1) ?: return false
-        return sender != localName
+/** Track agent echoes separately: a human can type through the same local player. */
+class ChatWakeFilter(private val clock: () -> Long = System::currentTimeMillis) {
+    private val publicChat = Regex("^<([^>]+)>\\s+(.+)", RegexOption.DOT_MATCHES_ALL)
+    private val echoes = ArrayDeque<Pair<String, Long>>()
+    @Synchronized fun sentByAgent(text: String) {
+        expire()
+        if (echoes.size >= 32) echoes.removeFirst()
+        echoes.addLast(text to clock())
     }
+    private fun expire() { while (echoes.isNotEmpty() && clock() - echoes.first().second >= 30_000) echoes.removeFirst() }
+    @Synchronized fun isIncoming(text: String, localName: String?): Boolean {
+        if (localName == null) return false
+        val match = publicChat.matchEntire(text) ?: return false
+        if (match.groupValues[1] != localName) return true
+        expire()
+        val echo = echoes.indexOfFirst { it.first == match.groupValues[2] }
+        if (echo < 0) return true
+        echoes.removeAt(echo)
+        return false
+    }
+}
+
+/** Public chat wakes listeners; registered agent echoes, tool feedback and system notices do not. */
+object ChatWake {
+    private val filter = ChatWakeFilter()
+    fun sentByAgent(text: String) = filter.sentByAgent(text)
+    @JvmStatic fun isIncoming(text: String, localName: String?) = filter.isIncoming(text, localName)
 }
