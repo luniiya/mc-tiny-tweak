@@ -4,10 +4,12 @@ import dev.luniiya.mctinytweak.McTinyTweak
 import dev.luniiya.mctinytweak.attributes.AttributeAutoApply
 import dev.luniiya.mctinytweak.attributes.AttributeAutoApply.Decision
 import dev.luniiya.mctinytweak.client.HiddenCommandFeedback
+import dev.luniiya.mctinytweak.client.Notices
 import dev.luniiya.mctinytweak.client.itemeditor.ItemEditorSession
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientPacketListener
+import net.minecraft.network.chat.Component
 import net.minecraft.world.level.storage.LevelResource
 import java.nio.file.Files
 import java.nio.file.Path
@@ -67,15 +69,28 @@ object AttributeAutoApplier {
         val synced = PlayerAttributes.holders(player).filter { it.value().isClientSyncable }
         val values = synced.associate { it.registeredName to player.attributes.getBaseValue(it) }
         val defaults = synced.associate { it.registeredName to PlayerAttributes.default(it) }
-        when (val decision = state.decide(world, values, defaults, PlayerAttributes.presets())) {
-            Decision.Nothing -> Unit
-            is Decision.Remember -> update { it.remember(world, decision.preset) }
+        val auto = state
+        when (val decision = auto.decide(world, values, defaults, PlayerAttributes.presets())) {
+            // Off, or this world was dealt with before: say what it has, when auto apply is on.
+            Decision.Nothing -> if (auto.preset != null) auto.worlds[world]?.let { notifyAlreadyLoaded(it) }
+            is Decision.Remember -> {
+                update { it.remember(world, decision.preset) }
+                notifyAlreadyLoaded(decision.preset)
+            }
             is Decision.Apply -> {
                 PlayerAttributes.load(player, decision.preset, quiet = true)
                 update { it.remember(world, decision.preset) }
                 McTinyTweak.logger.info("Applied attribute preset {} in {}", decision.preset, world)
+                Notices.show(Component.translatable("notice.mc_tiny_tweak.attributes.loaded", decision.preset))
             }
         }
+    }
+
+    private fun notifyAlreadyLoaded(what: String) {
+        Notices.show(
+            if (what == AttributeAutoApply.CUSTOM) Component.translatable("notice.mc_tiny_tweak.attributes.already_custom")
+            else Component.translatable("notice.mc_tiny_tweak.attributes.already_loaded", what),
+        )
     }
 
     /**

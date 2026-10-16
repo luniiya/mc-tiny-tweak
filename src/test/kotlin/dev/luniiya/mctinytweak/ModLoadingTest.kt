@@ -79,6 +79,8 @@ class ModLoadingTest {
         assertTrue(lang.has("screen.${McTinyTweak.MOD_ID}.tweaks.show_armor"))
         assertTrue(lang.has("screen.${McTinyTweak.MOD_ID}.op"))
         assertTrue(lang.has("screen.${McTinyTweak.MOD_ID}.attributes"))
+        for (key in listOf("loaded", "already_loaded", "already_custom")) assertTrue(lang.has("notice.${McTinyTweak.MOD_ID}.attributes.$key"), key)
+        assertTrue(lang.has("notice.${McTinyTweak.MOD_ID}.inventory_presets.kit_given"))
         assertTrue(lang.has("key.category.${McTinyTweak.MOD_ID}.main"))
     }
 }

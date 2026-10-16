@@ -12,6 +12,11 @@
   considering code changes complete. Report results or explicit blockers.
 - Add GameTests when implementing gameplay behavior that unit tests cannot
   exercise. Do not treat a successful compilation as proof that a mixin works.
+- A "notification" means the mod's own chat line shown with `Notices.show`:
+  the pink `[MC Tiny Tweak]` tag followed by light pink text, local only and
+  never sent to the server or the agent's chat log. Its text goes in the lang
+  file under `notice.mc_tiny_tweak.*`. Use it for things the mod does by itself
+  or toggles, like the MCP agent taking over or fullbright on/off.
 - Use Prism Launcher for instructions about installing the built mod.
 - Keep the README short with minimal formatting and no em dash. Put development
   details in DEVELOPMENT.md.

@@ -1,8 +1,10 @@
 package dev.luniiya.mctinytweak.client.inventorypresets
 
+import dev.luniiya.mctinytweak.client.Notices
 import dev.luniiya.mctinytweak.client.itemeditor.ItemEditorSession
 import dev.luniiya.mctinytweak.inventorypresets.InventoryPresets
 import net.minecraft.client.Minecraft
+import net.minecraft.network.chat.Component
 import net.minecraft.world.level.GameType
 
 /**
@@ -28,6 +30,9 @@ object StarterInventory {
         if (!minecraft.isLocalServer) return
         if (!ItemEditorSession.canApplyAsOperator(minecraft)) return
         if (InventoryPresetStore.snapshot(player).isNotEmpty()) return
-        InventoryPresetStore.starter(player)?.let { InventoryPresetStore.give(player, it) }
+        InventoryPresetStore.starter(player)?.let {
+            InventoryPresetStore.give(player, it)
+            Notices.show(Component.translatable("notice.mc_tiny_tweak.inventory_presets.kit_given"))
+        }
     }
 }
