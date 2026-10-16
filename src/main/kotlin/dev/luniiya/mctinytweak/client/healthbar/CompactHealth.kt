@@ -8,6 +8,7 @@ import net.minecraft.util.ARGB
 /** Draws [HealthBars] where the first row of hearts would be: the thick bar on top, the thin bar under it. */
 object CompactHealth {
     private const val WIDTH = 81
+    private const val INNER = WIDTH - 2
     private const val THIN_HEIGHT = 2
     private const val THICK_HEIGHT = 6
 
@@ -21,26 +22,30 @@ object CompactHealth {
         val hp = health.toDouble()
         val gold = absorption.toDouble()
 
-        // Thin bar: the whole health, with a dark line between layers when there is room for it.
+        val border = if (blink) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
+
+        // Thick bar: the top layer, with a border like the hearts' outline.
+        val thickY = y
+        graphics.fill(x, thickY, x + WIDTH, thickY + THICK_HEIGHT, border)
+        draw(graphics, HealthBars.thick(hp, max, gold), HealthBars.LAYER, x + 1, thickY + 1, THICK_HEIGHT - 2, shade = true, width = INNER)
+
+        // Thin bar: the whole health. It only has side borders, so its colors line up with the thick bar's.
         val thinY = y + THICK_HEIGHT + 1
         val total = max + gold
-        draw(graphics, HealthBars.thin(hp, max, gold), total, x, thinY, THIN_HEIGHT, shade = false)
+        graphics.fill(x, thinY, x + 1, thinY + THIN_HEIGHT, border)
+        graphics.fill(x + WIDTH - 1, thinY, x + WIDTH, thinY + THIN_HEIGHT, border)
+        draw(graphics, HealthBars.thin(hp, max, gold), total, x + 1, thinY, THIN_HEIGHT, shade = false, width = INNER)
+        // A dark line between layers when there is room for it.
         val edges = HealthBars.layerEdges(max, gold)
-        if (edges.isNotEmpty() && WIDTH / (edges.size + 1) >= 4) {
+        if (edges.isNotEmpty() && INNER / (edges.size + 1) >= 4) {
             for (edge in edges) {
-                val px = x + (edge / total * WIDTH).toInt()
+                val px = x + 1 + (edge / total * INNER).toInt()
                 graphics.fill(px, thinY, px + 1, thinY + THIN_HEIGHT, 0x99000000.toInt())
             }
         }
-
-        // Thick bar: the top layer, with a black border like the hearts' outline.
-        val thickY = y
-        val border = if (blink) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
-        graphics.fill(x, thickY, x + WIDTH, thickY + THICK_HEIGHT, border)
-        draw(graphics, HealthBars.thick(hp, max, gold), HealthBars.LAYER, x + 1, thickY + 1, THICK_HEIGHT - 2, shade = true, width = WIDTH - 2)
     }
 
-    private fun draw(graphics: GuiGraphics, segments: List<HealthBars.Segment>, length: Double, x: Int, y: Int, height: Int, shade: Boolean, width: Int = WIDTH) {
+    private fun draw(graphics: GuiGraphics, segments: List<HealthBars.Segment>, length: Double, x: Int, y: Int, height: Int, shade: Boolean, width: Int) {
         if (length <= 0) return
         for (s in segments) {
             val from = x + Math.round(s.start / length * width).toInt()
