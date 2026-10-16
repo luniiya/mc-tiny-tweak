@@ -13,6 +13,7 @@ import dev.luniiya.mctinytweak.client.attributes.AttributeAutoApplier
 import dev.luniiya.mctinytweak.client.inventorypresets.StarterInventory
 import dev.luniiya.mctinytweak.client.mcp.AgentInput
 import dev.luniiya.mctinytweak.client.mcp.BaritoneBridge
+import dev.luniiya.mctinytweak.client.serverstats.ServerStats
 import dev.luniiya.mctinytweak.client.mcp.BaritoneInventoryGate
 import dev.luniiya.mctinytweak.client.mcp.BaritoneSettings
 import dev.luniiya.mctinytweak.client.mcp.Mcp
@@ -59,6 +60,7 @@ object McTinyTweakClient : ClientModInitializer {
         AgentStatusCard.register()
         FreecamHud.register()
         HiddenCommandFeedback.register()
+        ServerStats.register()
         InventoryPresetBar.register()
         Mcp.load()
         ClientLifecycleEvents.CLIENT_STARTED.register {

@@ -29,6 +29,7 @@
     "client.mcp.KeyMappingAccessor",
     "client.mcp.KeyMappingControlMixin",
     "client.mcp.MouseHandlerControlMixin",
+    "client.serverstats.ClientPacketListenerTimeMixin",
     "client.visuals.BannerRendererMixin",
     "client.visuals.LightTextureMixin",
     "client.visuals.ScreenEffectRendererMixin",
