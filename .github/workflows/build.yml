@@ -1,0 +1,35 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        minecraft: ["1.21.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build and run unit tests
+        run: ./gradlew :${{ matrix.minecraft }}:build
+      - name: Upload mod JARs
+        uses: actions/upload-artifact@v4
+        with:
+          name: mc-tiny-tweak-${{ matrix.minecraft }}
+          path: versions/${{ matrix.minecraft }}/build/libs/*.jar
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.minecraft }}
+          path: versions/${{ matrix.minecraft }}/build/reports/tests/

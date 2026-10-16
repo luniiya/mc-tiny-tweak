@@ -1,0 +1,5 @@
+- [MC Tiny Tweak](mc-tiny-tweak.md) - Repository identity and separate workspace layout.
+- [Unit testing](unit-testing.md) - Required tests and reporting for code changes.
+- [Fabric development](fabric-development.md) - Official tooling and testing references checked in 2026.
+- [Kotlin stack evaluation](kotlin-stack-evaluation.md) - Researched recommendation, integration limits, and user priorities.
+- [Prism Launcher](prism-launcher.md) - User always uses Prism for Minecraft.

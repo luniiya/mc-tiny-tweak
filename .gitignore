@@ -1,0 +1,11 @@
+.gradle/
+.kotlin/
+build/
+**/build/
+**/run/
+**/logs/
+**/crash-reports/
+.idea/
+*.iml
+.vscode/
+.DS_Store
