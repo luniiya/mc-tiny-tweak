@@ -1,9 +1,11 @@
 package dev.luniiya.mctinytweak.client.itemeditor
 
+import dev.luniiya.mctinytweak.itemeditor.ItemCommand
 import dev.luniiya.mctinytweak.itemeditor.ItemDraft
 import net.minecraft.client.Minecraft
 import net.minecraft.core.HolderLookup
 import net.minecraft.network.chat.Component
+import net.minecraft.server.permissions.Permissions
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 
@@ -32,19 +34,39 @@ class ItemEditorSession(
         draft = ItemDraft.from(stack)
     }
 
-    /** Writes the built item into the held slot. Returns a message describing the outcome. */
+    /**
+     * Writes the built item into the held slot through the creative inventory packet, which the server only
+     * accepts from players in creative mode. Returns a message describing the outcome.
+     */
     fun apply(minecraft: Minecraft): Component {
         val stack = (result as? ItemDraft.Result.Success)?.stack
             ?: return Component.translatable("screen.mc_tiny_tweak.item_editor.invalid")
         val player = minecraft.player ?: return Component.translatable("screen.mc_tiny_tweak.item_editor.no_player")
-        if (!player.hasInfiniteMaterials()) return Component.translatable("screen.mc_tiny_tweak.item_editor.creative_only")
+        if (!canApplyCreative(minecraft)) return Component.translatable("screen.mc_tiny_tweak.item_editor.creative_only")
         player.inventory.setItem(slot, stack.copy())
         minecraft.gameMode?.handleCreativeModeItemAdd(stack.copy(), HOTBAR_MENU_OFFSET + slot)
         reset(stack)
         return Component.translatable("screen.mc_tiny_tweak.item_editor.applied")
     }
 
+    /** Writes the built item into the held slot with `/item replace`, which works in any game mode for operators. */
+    fun applyAsOperator(minecraft: Minecraft): Component {
+        val stack = (result as? ItemDraft.Result.Success)?.stack
+            ?: return Component.translatable("screen.mc_tiny_tweak.item_editor.invalid")
+        val player = minecraft.player ?: return Component.translatable("screen.mc_tiny_tweak.item_editor.no_player")
+        if (!canApplyAsOperator(minecraft)) return Component.translatable("screen.mc_tiny_tweak.item_editor.operator_only")
+        player.connection.sendCommand(ItemCommand.replaceHotbar(stack, slot, registries))
+        reset(stack)
+        return Component.translatable("screen.mc_tiny_tweak.item_editor.applied_operator")
+    }
+
     companion object {
+        fun canApplyCreative(minecraft: Minecraft) = minecraft.player?.hasInfiniteMaterials() == true
+
+        /** `/item` needs the gamemaster permission level (2), which operators have by default. */
+        fun canApplyAsOperator(minecraft: Minecraft) =
+            minecraft.player?.permissions()?.hasPermission(Permissions.COMMANDS_GAMEMASTER) == true
+
         /** Hotbar slot 0 is menu slot 36 in the player's inventory menu. */
         const val HOTBAR_MENU_OFFSET = 36
 

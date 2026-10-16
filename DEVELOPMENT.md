@@ -79,7 +79,10 @@ passing unit tests alone does not prove a mixin works in game.
 ## Item editor
 
 Press `\` in game to open the mod menu (rebindable under Controls, MC Tiny
-Tweak). The item editor edits the held item and needs creative mode to apply.
+Tweak). The item editor edits the held item. Apply (Creative) uses the creative
+inventory packet, which servers only accept in creative mode. Apply (OP) sends
+`/item replace entity @s hotbar.N with ...` (built by `ItemCommand`), which
+works in any game mode with permission level 2.
 Logic lives in `itemeditor/` and is unit tested; screens live in
 `client/itemeditor/`. `ItemDraft` applies edits on top of the held stack and
 keeps every component it does not edit. The raw editor reads and writes the

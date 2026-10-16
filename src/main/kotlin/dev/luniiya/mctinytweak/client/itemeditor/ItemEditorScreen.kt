@@ -18,6 +18,7 @@ class ItemEditorScreen(
 ) : Screen(Component.translatable("screen.mc_tiny_tweak.item_editor")) {
     private var status: Component? = null
     private lateinit var applyButton: Button
+    private lateinit var applyOperatorButton: Button
 
     private val left get() = (width - PANEL_WIDTH) / 2
     private val fieldsX get() = left + PREVIEW_SIZE + GAP
@@ -65,14 +66,23 @@ class ItemEditorScreen(
         )
 
         val bottom = top + 4 * ROW + 24
-        val half = (PANEL_WIDTH - 4) / 2
+        val buttonWidth = (PANEL_WIDTH - 8) / 3
         applyButton = addRenderableWidget(
             Button.builder(Component.translatable("screen.mc_tiny_tweak.item_editor.apply")) {
                 status = session.apply(minecraft)
                 rebuildWidgets()
-            }.bounds(left, bottom, half, 20).build(),
+            }.bounds(left, bottom, buttonWidth, 20).build(),
         )
-        addRenderableWidget(Button.builder(Component.translatable("gui.done")) { onClose() }.bounds(left + half + 4, bottom, half, 20).build())
+        applyOperatorButton = addRenderableWidget(
+            Button.builder(Component.translatable("screen.mc_tiny_tweak.item_editor.apply_operator")) {
+                status = session.applyAsOperator(minecraft)
+                rebuildWidgets()
+            }.bounds(left + buttonWidth + 4, bottom, buttonWidth, 20).build(),
+        )
+        addRenderableWidget(
+            Button.builder(Component.translatable("gui.done")) { onClose() }
+                .bounds(left + 2 * (buttonWidth + 4), bottom, buttonWidth, 20).build(),
+        )
         refreshApplyButton()
     }
 
@@ -95,9 +105,14 @@ class ItemEditorScreen(
     }
 
     private fun refreshApplyButton() {
-        val creative = minecraft.player?.hasInfiniteMaterials() == true
-        applyButton.active = creative && session.result is ItemDraft.Result.Success
-        applyButton.setTooltip(if (creative) null else Tooltip.create(Component.translatable("screen.mc_tiny_tweak.item_editor.creative_only")))
+        val valid = session.result is ItemDraft.Result.Success
+        refreshApply(applyButton, valid, ItemEditorSession.canApplyCreative(minecraft), "creative_only")
+        refreshApply(applyOperatorButton, valid, ItemEditorSession.canApplyAsOperator(minecraft), "operator_only")
+    }
+
+    private fun refreshApply(button: Button, valid: Boolean, allowed: Boolean, deniedKey: String) {
+        button.active = valid && allowed
+        button.setTooltip(if (allowed) null else Tooltip.create(Component.translatable("screen.mc_tiny_tweak.item_editor.$deniedKey")))
     }
 
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {

@@ -6,6 +6,7 @@ import net.minecraft.client.KeyMapping
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.lwjgl.glfw.GLFW
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -37,6 +38,15 @@ class PersonalDefaultsTest {
         for (machineSpecific in listOf("lastServer", "soundDevice", "startedCleanly")) {
             assertFalse(options.containsKey(machineSpecific), machineSpecific)
         }
+    }
+
+    @Test
+    fun `bundled defaults bind the mod menu to backslash`() {
+        assertEquals("key.keyboard.backslash", PersonalDefaults.keybinds["key.mc_tiny_tweak.open_menu"])
+        assertEquals(
+            InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_BACKSLASH).name,
+            PersonalDefaults.keybinds["key.mc_tiny_tweak.open_menu"],
+        )
     }
 
     @Test

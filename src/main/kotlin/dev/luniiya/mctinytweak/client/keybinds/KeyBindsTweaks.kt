@@ -46,14 +46,6 @@ class KeyBindsTweaks(private val screen: KeyBindsScreen) {
         column.addChild(StringWidget(screen.title, minecraft.font))
         val row = column.addChild(LinearLayout.horizontal().spacing(8))
 
-        keySearchButton = row.addChild(
-            Button.builder(Component.empty()) { listening = true; refreshKeySearchLabel() }
-                .width(SEARCH_WIDTH)
-                .tooltip(Tooltip.create(Component.translatable("controls.mc_tiny_tweak.key_search.tooltip")))
-                .build(),
-        )
-        refreshKeySearchLabel()
-
         val nameSearch = EditBox(minecraft.font, SEARCH_WIDTH, 20, Component.translatable("controls.mc_tiny_tweak.name_search"))
         nameSearch.value = nameQuery
         nameSearch.setHint(Component.translatable("controls.mc_tiny_tweak.name_search").withStyle(ChatFormatting.DARK_GRAY))
@@ -62,6 +54,14 @@ class KeyBindsTweaks(private val screen: KeyBindsScreen) {
             applyFilter()
         }
         row.addChild(nameSearch)
+
+        keySearchButton = row.addChild(
+            Button.builder(Component.empty()) { listening = true; refreshKeySearchLabel() }
+                .width(SEARCH_WIDTH)
+                .tooltip(Tooltip.create(Component.translatable("controls.mc_tiny_tweak.key_search.tooltip")))
+                .build(),
+        )
+        refreshKeySearchLabel()
     }
 
     /** Remembers the vanilla entries in their sorted order so filters can rebuild the list from them. */
