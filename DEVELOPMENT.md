@@ -112,3 +112,7 @@ The burning overlay sits lower (`FireOverlay.EXTRA_DROP`) and shields held in fi
 The mod menu has a Tweaks screen. Its settings are saved in `config/mc_tiny_tweak.properties` (`TweakSettings`). Show armor is off by default: players render without armor, and a thin gray experience-bar style bar above their name fills one of four segments per worn piece in the material's color (`ArmorBar` picks colors, `ArmorBarShape` lays out the rectangles).
 
 To test with two players, run `./gradlew :1.21.11:runServer` (offline mode, in `run-server/`), then `runClient --args="--quickPlayMultiplayer localhost"` so it joins by itself (plain `runClient` stays on the title screen). Run `runClient2` as well: it starts as Tester2 in `run-client2/` and joins localhost by itself. Running the server means agreeing to the Minecraft EULA in `run-server/eula.txt`.
+
+## Hotbar
+
+The hotbar is split in two: slots 1-4 (X C V B in the personal binds) are tinted gold (`SplitHotbar.FIRST_GROUP_TINT`) and separated from slots 5-9 by a gap (`HotbarLayout.GAP`). `GuiMixin` replaces `Gui.renderItemHotbar`, which is rebuilt from the vanilla sprites, so resource packs still apply.

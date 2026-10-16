@@ -9,6 +9,8 @@
     "client.armorbar.HumanoidArmorLayerMixin",
     "client.freelook.CameraMixin",
     "client.freelook.MouseHandlerMixin",
+    "client.hotbar.GuiInvoker",
+    "client.hotbar.GuiMixin",
     "client.keybinds.KeyBindsScreenAccessor",
     "client.keybinds.KeyBindsScreenMixin",
     "client.keybinds.KeyEntryAccessor",
