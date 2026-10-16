@@ -11,6 +11,18 @@
   "screen.mc_tiny_tweak.attributes": "Attributes",
   "screen.mc_tiny_tweak.attributes.search": "Search attributes",
   "screen.mc_tiny_tweak.attributes.set": "Set",
+  "screen.mc_tiny_tweak.attributes.presets": "Presets",
+  "screen.mc_tiny_tweak.attributes.presets.name": "Preset name",
+  "screen.mc_tiny_tweak.attributes.presets.save": "Save",
+  "screen.mc_tiny_tweak.attributes.presets.save.tooltip": "Saves all your current base values under this name. An existing preset with the same name is replaced.",
+  "screen.mc_tiny_tweak.attributes.presets.load": "Load",
+  "screen.mc_tiny_tweak.attributes.presets.delete": "Delete",
+  "screen.mc_tiny_tweak.attributes.presets.delete.confirm": "Delete the preset \"%s\"?",
+  "screen.mc_tiny_tweak.attributes.presets.default": "Default",
+  "screen.mc_tiny_tweak.attributes.presets.default.tooltip": "Resets every attribute to the normal player value",
+  "screen.mc_tiny_tweak.attributes.presets.saved": "Saved %s",
+  "screen.mc_tiny_tweak.attributes.presets.loaded": "Loaded %s (%s changes)",
+  "screen.mc_tiny_tweak.attributes.presets.deleted": "Deleted %s",
   "screen.mc_tiny_tweak.attributes.reset": "Reset to %s",
   "screen.mc_tiny_tweak.attributes.operator_only": "Needs OP: changes are sent as /attribute commands",
   "screen.mc_tiny_tweak.attributes.tooltip": "%s\nBase value, from %s to %s. Default %s.\nPress Enter or Set to apply.",
@@ -121,5 +133,7 @@
   "screen.mc_tiny_tweak.baritone.reset": "Reset to mod defaults",
   "screen.mc_tiny_tweak.baritone.reset.tooltip": "Puts every setting back to MC Tiny Tweak's Baritone defaults.",
   "screen.mc_tiny_tweak.baritone.reset.confirm": "Every Baritone setting goes back to MC Tiny Tweak's defaults, or Baritone's own where the mod has none.",
-  "screen.mc_tiny_tweak.baritone.setting.tooltip": "%s\nType: %s\nDefault: %s"
+  "screen.mc_tiny_tweak.baritone.setting.tooltip": "%s\nType: %s\nDefault: %s",
+  "screen.mc_tiny_tweak.mcp.chat_wake": "Chat notifications",
+  "screen.mc_tiny_tweak.mcp.chat_wake.tooltip": "Notify subscribed MCP clients when another player speaks. Agents can also mute their own session. The connected app decides whether notifications wake its agent."
 }

@@ -14,12 +14,9 @@ import net.minecraft.client.gui.narration.NarratableEntry
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.core.Holder
-import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
-import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.ai.attributes.Attribute
-import net.minecraft.world.entity.ai.attributes.DefaultAttributes
 import net.minecraft.world.entity.ai.attributes.RangedAttribute
 import org.lwjgl.glfw.GLFW
 
@@ -29,7 +26,7 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
     private lateinit var list: AttributeList
 
     override fun init() {
-        val search = EditBox(font, width / 2 - 170, 22, 340, 18, Component.translatable("screen.mc_tiny_tweak.attributes.search"))
+        val search = EditBox(font, width / 2 - 180, 22, 360, 18, Component.translatable("screen.mc_tiny_tweak.attributes.search"))
         search.setHint(Component.translatable("screen.mc_tiny_tweak.attributes.search").withStyle(ChatFormatting.DARK_GRAY))
         search.value = query
         search.setResponder {
@@ -41,7 +38,12 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
         addRenderableWidget(list)
         addRenderableWidget(search)
         setInitialFocus(search)
-        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE) { onClose() }.bounds(width / 2 - 100, height - 26, 200, 20).build())
+        addRenderableWidget(
+            Button.builder(Component.translatable("screen.mc_tiny_tweak.attributes.presets")) { minecraft.setScreen(AttributePresetsScreen(this)) }
+                .bounds(width / 2 - 155, height - 26, 150, 20)
+                .build(),
+        )
+        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE) { onClose() }.bounds(width / 2 + 5, height - 26, 150, 20).build())
     }
 
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
@@ -61,18 +63,15 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
     private inner class AttributeList(minecraft: Minecraft, width: Int, height: Int, y: Int) :
         ContainerObjectSelectionList<Row>(minecraft, width, height, y, 24) {
         fun refill() {
-            val attributes = minecraft.player?.attributes
-            val rows = BuiltInRegistries.ATTRIBUTE.listElements()
-                .filter { attributes?.hasAttribute(it) == true }
+            val rows = minecraft.player?.let(PlayerAttributes::holders).orEmpty()
                 .map { Row(it) }
                 .filter { it.matches(query) }
-                .toList()
                 .sortedBy { it.name.string }
             replaceEntries(rows)
             setScrollAmount(0.0)
         }
 
-        override fun getRowWidth() = 340
+        override fun getRowWidth() = 360
     }
 
     private inner class Row(private val holder: Holder<Attribute>) : ContainerObjectSelectionList.Entry<Row>() {
@@ -81,7 +80,7 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
         private val synced = holder.value().isClientSyncable
         private val range = (holder.value() as? RangedAttribute)?.let { it.minValue..it.maxValue }
             ?: Double.NEGATIVE_INFINITY..Double.POSITIVE_INFINITY
-        private val default = DefaultAttributes.getSupplier(EntityType.PLAYER).getBaseValue(holder)
+        private val default = PlayerAttributes.default(holder)
         private val operator = ItemEditorSession.canApplyAsOperator(minecraft)
 
         private val input: EditBox = object : EditBox(font, 0, 0, 64, 18, name) {
@@ -100,8 +99,8 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
         }
         private val setButton = Button.builder(Component.translatable("screen.mc_tiny_tweak.attributes.set")) { set() }
             .size(34, 20).build()
-        private val resetButton = Button.builder(Component.literal("↺")) { reset() }
-            .size(20, 20)
+        private val resetButton = Button.builder(Component.translatable("controls.reset")) { reset() }
+            .size(RESET_WIDTH, 20)
             .tooltip(Tooltip.create(Component.translatable("screen.mc_tiny_tweak.attributes.reset", AttributeCommands.format(default))))
             .build()
         private val widgets = listOf(input, setButton, resetButton)
@@ -119,7 +118,6 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
                 ),
             )
             setButton.active = operator
-            resetButton.active = operator
         }
 
         fun matches(query: String): Boolean {
@@ -152,12 +150,13 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
 
         override fun renderContent(graphics: GuiGraphics, mouseX: Int, mouseY: Int, hovered: Boolean, partialTick: Float) {
             val changed = base() != default
+            resetButton.active = operator && changed
             val color = when {
                 changed -> 0xFFFFFF55.toInt()
                 synced -> 0xFFFFFFFF.toInt()
                 else -> 0xFFAAAAAA.toInt()
             }
-            val controlsWidth = 64 + 4 + 34 + 2 + 20
+            val controlsWidth = 64 + 4 + 34 + 2 + RESET_WIDTH
             val valueText = AttributeCommands.format(instance()?.value ?: default).let { if (synced) it else "$it*" }
             val valueWidth = 56
             val label = font.substrByWidth(name, contentWidth - controlsWidth - valueWidth - 8)
@@ -175,5 +174,9 @@ class AttributeEditorScreen(private val parent: Screen?) : Screen(Component.tran
         override fun children(): List<GuiEventListener> = widgets
 
         override fun narratables(): List<NarratableEntry> = widgets
+    }
+
+    private companion object {
+        const val RESET_WIDTH = 40
     }
 }
