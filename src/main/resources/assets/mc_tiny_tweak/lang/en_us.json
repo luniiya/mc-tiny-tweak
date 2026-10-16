@@ -70,6 +70,8 @@
   "screen.mc_tiny_tweak.enchantment_editor.max_button": "Max",
   "screen.mc_tiny_tweak.enchantment_editor.max_button.tooltip": "Set to the normal max, %s",
   "screen.mc_tiny_tweak.enchantment_editor.clear": "Clear",
+  "screen.mc_tiny_tweak.enchantment_editor.max_plus": "Max+",
+  "screen.mc_tiny_tweak.enchantment_editor.max_plus.tooltip": "Set to %s, the highest level items can hold since 1.20.5",
   "screen.mc_tiny_tweak.raw_editor": "Raw Item SNBT",
   "controls.mc_tiny_tweak.key_search": "Search by key",
   "controls.mc_tiny_tweak.key_search.listening": "Press a key",

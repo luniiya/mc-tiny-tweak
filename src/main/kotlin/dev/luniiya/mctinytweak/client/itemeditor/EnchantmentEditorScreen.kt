@@ -41,8 +41,8 @@ class EnchantmentEditorScreen(
     private lateinit var previous: Button
     private lateinit var next: Button
 
-    private class Row(val box: EditBox, val one: Button, val max: Button, val clear: Button) {
-        val widgets get() = listOf(box, one, max, clear)
+    private class Row(val box: EditBox, val one: Button, val max: Button, val maxPlus: Button, val clear: Button) {
+        val widgets get() = listOf(box, one, max, maxPlus, clear)
     }
 
     /** As many rows as fit between the search bar and the footer, so small windows still show Done. */
@@ -62,7 +62,7 @@ class EnchantmentEditorScreen(
         addRenderableWidget(search)
 
         rows.clear()
-        val controls = BOX_WIDTH + 2 + 20 + 2 + 32 + 2 + 40
+        val controls = BOX_WIDTH + 2 + 20 + 2 + 32 + 2 + 36 + 2 + 40
         for (i in 0 until rowCount) {
             val y = TOP + 28 + i * ROW_HEIGHT
             var x = left + WIDTH - controls
@@ -79,9 +79,15 @@ class EnchantmentEditorScreen(
                 visible().getOrNull(i)?.let { box.value = it.maxLevel.toString() }
             }.bounds(x, y, 32, 20).build()
             x += 34
+            val maxPlus = Button.builder(Component.translatable("screen.mc_tiny_tweak.enchantment_editor.max_plus")) {
+                box.value = ItemDraft.MAX_ENCHANTMENT_LEVEL.toString()
+            }.bounds(x, y, 36, 20)
+                .tooltip(Tooltip.create(Component.translatable("screen.mc_tiny_tweak.enchantment_editor.max_plus.tooltip", ItemDraft.MAX_ENCHANTMENT_LEVEL)))
+                .build()
+            x += 38
             val clear = Button.builder(Component.translatable("screen.mc_tiny_tweak.enchantment_editor.clear")) { box.value = "" }
                 .bounds(x, y, 40, 20).build()
-            val row = Row(box, one, max, clear)
+            val row = Row(box, one, max, maxPlus, clear)
             row.widgets.forEach { addRenderableWidget(it) }
             rows += row
         }
@@ -152,7 +158,7 @@ class EnchantmentEditorScreen(
     private companion object {
         const val TOP = 36
         const val ROW_HEIGHT = 22
-        const val WIDTH = 320
+        const val WIDTH = 360
         const val BOX_WIDTH = 36
     }
 }

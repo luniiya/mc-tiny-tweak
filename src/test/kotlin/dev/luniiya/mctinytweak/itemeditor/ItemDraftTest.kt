@@ -122,4 +122,12 @@ class ItemDraftTest {
         assertEquals(7, built.get(DataComponents.STORED_ENCHANTMENTS)!!.getLevel(sharpness))
         assertEquals(mapOf("minecraft:sharpness" to 7), ItemDraft.from(built).enchantments)
     }
+
+    @Test
+    fun `the editor's top level matches what the game can store`() {
+        // ItemEnchantments clamps levels to 1..255 since 1.20.5, so old 35000 Sharpness swords cannot exist anymore.
+        val stack = ItemStack(Items.DIAMOND_SWORD)
+        stack.enchant(sharpness, 35000)
+        assertEquals(ItemDraft.MAX_ENCHANTMENT_LEVEL, stack.enchantments.getLevel(sharpness))
+    }
 }
