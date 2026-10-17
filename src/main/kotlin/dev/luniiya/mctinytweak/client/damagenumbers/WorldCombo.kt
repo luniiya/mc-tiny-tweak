@@ -6,7 +6,6 @@ import dev.luniiya.mctinytweak.McTinyTweak
 import dev.luniiya.mctinytweak.damagenumbers.ComboCounter
 import dev.luniiya.mctinytweak.damagenumbers.DamageNumbers
 import dev.luniiya.mctinytweak.damagenumbers.DamageVfx
-import dev.luniiya.mctinytweak.healthbar.HealthBars
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.multiplayer.ClientLevel
@@ -21,6 +20,7 @@ import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.chat.Style
 import net.minecraft.network.chat.TextColor
 import net.minecraft.resources.Identifier
+import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.entity.LivingEntity
 import kotlin.math.PI
 import kotlin.math.cos
@@ -62,7 +62,9 @@ object WorldCombo {
         val clearance: Double,
         val count: Int,
         val total: Float,
+        /** The damage number's heart color, and whether it was a crit, which flips its fill and outline. */
         val color: Int,
+        val crit: Boolean,
         val rainbow: Boolean,
         /** Which popup of its hit it is, so they fly out one after another. */
         val order: Int,
@@ -72,31 +74,28 @@ object WorldCombo {
     }
 
     private val popups = ArrayList<Popup>()
-    private var broken = true
 
     /**
-     * Counts one of the player's hits on [target], whose damage number shows in [color] or rainbow, and
-     * spawns its popups, particles and sounds.
+     * Counts one of the player's hits on [target], whose damage number shows in [color] (dark with a bright
+     * outline for a [crit]) or rainbow, and spawns its popups, particles and sounds.
      */
-    fun hit(time: Long, damage: Float, target: LivingEntity, color: Int, rainbow: Boolean) {
-        val wasActive = combo.active(time)
+    fun hit(time: Long, damage: Float, target: LivingEntity, color: Int, crit: Boolean, rainbow: Boolean) {
         val rankBefore = ComboCounter.rankLevel(combo.count)
         combo.hit(time, damage)
-        if (!wasActive) broken = false
         val style = DamageNumberPopups.style
         val count = combo.count
         if (!style.comboCounter || !ComboCounter.shown(count)) return
         val rank = ComboCounter.rankLevel(count)
         val rankUp = rank > rankBefore
-        spawn(target, count, color, rainbow, rankUp)
+        spawn(target, count, color, crit, rainbow, rankUp)
         if (style.burst) particles(target, count, rank, rankUp, color)
         if (!style.sounds) return
-        if (ComboCounter.milestone(count)) DamageSounds.play(DamageSounds.COMBO_MILESTONE, 0.7f, 0.9f + 0.08f * minOf(rank, 5))
-        if (rankUp) DamageSounds.play(DamageSounds.COMBO_RANK, 0.8f, 0.9f + 0.06f * rank)
+        if (ComboCounter.milestone(count)) DamageSounds.play(SoundEvents.NOTE_BLOCK_CHIME.value(), 0.8f, 0.8f + 0.15f * minOf(rank, 8))
+        if (rankUp) DamageSounds.play(SoundEvents.PLAYER_LEVELUP, 0.5f, 1f + 0.1f * rank)
     }
 
     /** The count on a random side of the mob, the DMG total across from it and a new rank over its head. */
-    private fun spawn(target: LivingEntity, count: Int, color: Int, rainbow: Boolean, rankUp: Boolean) {
+    private fun spawn(target: LivingEntity, count: Int, color: Int, crit: Boolean, rainbow: Boolean, rankUp: Boolean) {
         val camera = Minecraft.getInstance().gameRenderer.mainCamera
         val left = camera.leftVector()
         val up = camera.upVector()
@@ -113,7 +112,7 @@ object WorldCombo {
             val dx = -left.x() * across * sideways * reach + up.x() * high * upward * reach
             val dy = -left.y() * across * sideways * reach + up.y() * high * upward * reach
             val dz = -left.z() * across * sideways * reach + up.z() * high * upward * reach
-            popups += Popup(kind, cx, cy, cz, cx + dx, cy + dy, cz + dz, clearance, count, combo.total, color, rainbow, order)
+            popups += Popup(kind, cx, cy, cz, cx + dx, cy + dy, cz + dz, clearance, count, combo.total, color, crit, rainbow, order)
         }
         val angle = ComboCounter.sideAngle(random.nextFloat())
         add(Kind.COUNT, angle, 1.0 + random.nextDouble() * 0.35, 0)
@@ -152,20 +151,14 @@ object WorldCombo {
         }
     }
 
-    /** Ages the popups, and plays the combo breaking once when a combo of 10 or more runs out. */
-    fun tick(time: Long) {
+    fun tick() {
         popups.forEach { it.age++ }
         popups.removeIf { it.age >= it.lifetime }
-        if (broken || combo.active(time)) return
-        broken = true
-        val style = DamageNumberPopups.style
-        if (style.comboCounter && style.sounds && combo.count >= ComboCounter.STEP) DamageSounds.play(DamageSounds.COMBO_BREAK, 0.5f, 1f)
     }
 
     fun clear() {
         combo.clear()
         popups.clear()
-        broken = true
     }
 
     /** True while there are popups to draw. */
@@ -180,6 +173,9 @@ object WorldCombo {
             val alpha = DamageNumbers.alpha(age, popup.lifetime)
             if (alpha <= 0f) continue
             val color = if (popup.rainbow) DamageVfx.rainbow(popup.order, time * 0.6f) else popup.color
+            // Drawn just like the damage number: its fill and outline, black around rainbow.
+            val fill = if (popup.rainbow) color else DamageNumbers.fill(color, popup.crit)
+            val outline = DamageNumbers.withAlpha(if (popup.rainbow) DamageNumbers.BLACK else DamageNumbers.outline(color, popup.crit), alpha)
             // Bursting out from the mob's middle to its spot, then rising like a damage number.
             val out = ComboCounter.spread(age, popup.order).toDouble()
             val x = popup.fromX + (popup.x - popup.fromX) * out
@@ -188,19 +184,19 @@ object WorldCombo {
             DamageNumberPopups.billboard(poseStack, camera, x, y, z, popup.clearance)
             poseStack.scale(SCALE, SCALE, SCALE)
             when (popup.kind) {
-                Kind.COUNT -> count(font, queue, poseStack, popup, age, time, color, chunky, alpha)
-                Kind.TOTAL -> total(font, queue, poseStack, popup, age, color, chunky, alpha)
-                Kind.RANK -> rank(font, queue, poseStack, popup, age, time, color, chunky, alpha)
+                Kind.COUNT -> count(font, queue, poseStack, popup, age, time, color, fill, outline, chunky, alpha)
+                Kind.TOTAL -> total(font, queue, poseStack, age, popup, fill, outline, chunky, alpha)
+                Kind.RANK -> rank(font, queue, poseStack, popup, age, time, fill, outline, chunky, alpha)
             }
             poseStack.popPose()
         }
     }
 
     /** The count, its echo, flash, burst and sparkles, with HITS and the timer bar under it, centered. */
-    private fun count(font: Font, queue: SubmitNodeCollector, poseStack: PoseStack, popup: Popup, age: Float, time: Float, color: Int, chunky: Boolean, alpha: Float) {
+    private fun count(font: Font, queue: SubmitNodeCollector, poseStack: PoseStack, popup: Popup, age: Float, time: Float, color: Int, fill: Int, outline: Int, chunky: Boolean, alpha: Float) {
         val count = popup.count
-        val number = text(count.toString(), chunky, color)
-        val hits = text("HITS", chunky, DamageNumbers.mix(color, DamageNumbers.WHITE, 0.6f))
+        val number = text(count.toString(), chunky, fill)
+        val hits = text("HITS", chunky, fill)
         val width = maxOf(font.width(number) * SIZE, font.width(hits) * 1.25f, TIMER_WIDTH)
         poseStack.translate(-width / 2 + ComboCounter.shake(age, count, 0), -24f + ComboCounter.shake(age, count, 1), 0f)
         // A slight forward lean, like the counters in action games.
@@ -217,16 +213,16 @@ object WorldCombo {
             poseStack.pushPose()
             poseStack.translate(cx, cy, -0.5f)
             poseStack.scale(SIZE * echoSize, SIZE * echoSize, SIZE * echoSize)
-            draw(queue, poseStack, font, number, -font.width(number) / 2f, -4f, echoAlpha * alpha, outline = false)
+            draw(queue, poseStack, font, number, -font.width(number) / 2f, -4f, echoAlpha * alpha, 0)
             poseStack.popPose()
         }
 
         val size = SIZE * ComboCounter.pop(age, count) * ComboCounter.heartbeat(time, count)
-        val flashed = text(count.toString(), chunky, DamageNumbers.mix(color, DamageNumbers.WHITE, ComboCounter.flash(age, count)))
+        val flashed = text(count.toString(), chunky, DamageNumbers.mix(fill, DamageNumbers.WHITE, ComboCounter.flash(age, count)))
         poseStack.pushPose()
         poseStack.translate(cx, cy, 0f)
         poseStack.scale(size, size, size)
-        draw(queue, poseStack, font, flashed, -font.width(flashed) / 2f, -4f, alpha)
+        draw(queue, poseStack, font, flashed, -font.width(flashed) / 2f, -4f, alpha, outline)
         poseStack.popPose()
 
         if (ComboCounter.rainbow(count)) sparkles(queue, poseStack, time, cx, cy, cx * 1.25f + 8f, popup, color, alpha)
@@ -234,7 +230,7 @@ object WorldCombo {
         poseStack.pushPose()
         poseStack.translate(cx, 27f, 0f)
         poseStack.scale(1.25f, 1.25f, 1.25f)
-        draw(queue, poseStack, font, hits, -font.width(hits) / 2f, 0f, alpha)
+        draw(queue, poseStack, font, hits, -font.width(hits) / 2f, 0f, alpha, outline)
         poseStack.popPose()
 
         poseStack.pushPose()
@@ -244,25 +240,24 @@ object WorldCombo {
     }
 
     /** The combo's damage so far, slamming in a little like a damage number. */
-    private fun total(font: Font, queue: SubmitNodeCollector, poseStack: PoseStack, popup: Popup, age: Float, color: Int, chunky: Boolean, alpha: Float) {
-        val text = text(DamageNumbers.format(popup.total) + " DMG", chunky, DamageNumbers.mix(color, DamageNumbers.WHITE, 0.35f))
+    private fun total(font: Font, queue: SubmitNodeCollector, poseStack: PoseStack, age: Float, popup: Popup, fill: Int, outline: Int, chunky: Boolean, alpha: Float) {
+        val text = text(DamageNumbers.format(popup.total) + " DMG", chunky, fill)
         val size = 1.3f * ComboCounter.pop(age, 0)
         poseStack.scale(size, size, size)
-        draw(queue, poseStack, font, text, -font.width(text) / 2f, -4f, alpha)
+        draw(queue, poseStack, font, text, -font.width(text) / 2f, -4f, alpha, outline)
     }
 
-    /** A new rank slamming in over the mob's head, shimmering between the number's color and gold. */
-    private fun rank(font: Font, queue: SubmitNodeCollector, poseStack: PoseStack, popup: Popup, age: Float, time: Float, color: Int, chunky: Boolean, alpha: Float) {
+    /** A new rank slamming in over the mob's head, in the number's colors, rainbow letter by letter at MAX. */
+    private fun rank(font: Font, queue: SubmitNodeCollector, poseStack: PoseStack, popup: Popup, age: Float, time: Float, fill: Int, outline: Int, chunky: Boolean, alpha: Float) {
         val name = ComboCounter.rank(popup.count) ?: return
         val text = Component.empty()
         name.forEachIndexed { i, c ->
-            val shimmer = if (popup.rainbow) DamageVfx.rainbow(i, time * 0.8f) else DamageNumbers.mix(color, HealthBars.GOLD, 0.5f + 0.5f * sin(time * 0.4f - i * 0.6f))
-            text.append(text(c.toString(), chunky, shimmer))
+            text.append(text(c.toString(), chunky, if (popup.rainbow) DamageVfx.rainbow(i, time * 0.8f) else fill))
         }
         val scale = 1.6f * ComboCounter.rankScale(age)
         poseStack.mulPose(Axis.ZP.rotation(-0.05f + 0.03f * sin(time * 0.3f)))
         poseStack.scale(scale, scale, scale)
-        draw(queue, poseStack, font, text, -font.width(text) / 2f, -4f, alpha)
+        draw(queue, poseStack, font, text, -font.width(text) / 2f, -4f, alpha, outline)
     }
 
     private const val TIMER_WIDTH = 56f
@@ -347,9 +342,8 @@ object WorldCombo {
         return Component.literal(value).withStyle(s)
     }
 
-    /** Text glowing at full brightness, with a dark outline so it reads over anything. */
-    private fun draw(queue: SubmitNodeCollector, poseStack: PoseStack, font: Font, text: Component, x: Float, y: Float, alpha: Float, outline: Boolean = true) {
-        val outlineColor = if (outline) DamageNumbers.withAlpha(DamageNumbers.BLACK, 0.85f * alpha) else 0
-        queue.submitText(poseStack, x, y, text.visualOrderText, false, Font.DisplayMode.NORMAL, LightTexture.FULL_BRIGHT, DamageNumbers.withAlpha(DamageNumbers.WHITE, alpha), 0, outlineColor)
+    /** Text glowing at full brightness, with [outline] around it, or none for 0. */
+    private fun draw(queue: SubmitNodeCollector, poseStack: PoseStack, font: Font, text: Component, x: Float, y: Float, alpha: Float, outline: Int) {
+        queue.submitText(poseStack, x, y, text.visualOrderText, false, Font.DisplayMode.NORMAL, LightTexture.FULL_BRIGHT, DamageNumbers.withAlpha(DamageNumbers.WHITE, alpha), 0, outline)
     }
 }

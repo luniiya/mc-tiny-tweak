@@ -149,7 +149,7 @@ object DamageNumberPopups {
         }
         val time = level.gameTime
         DamageImpact.tick(time)
-        WorldCombo.tick(time)
+        WorldCombo.tick()
         popups.forEach {
             it.age++
             it.tierAge++
@@ -171,7 +171,7 @@ object DamageNumberPopups {
             val attacker = attackers.of(entity.id, time)
             if (!DamageNumbers.shows(style.onlyMine, attacker, player.id)) continue
             val popup = hit(minecraft, level, entity, change, crit, killed)
-            if (attacker == player.id) WorldCombo.hit(time, change, entity, numberColor(popup), style.rainbow && popup.tier >= DamageVfx.MAX)
+            if (attacker == player.id) WorldCombo.hit(time, change, entity, numberColor(popup), popup.crit && !popup.killed, style.rainbow && popup.tier >= DamageVfx.MAX)
         }
         health.retain(seen)
         crits.prune(time)
@@ -179,9 +179,8 @@ object DamageNumberPopups {
         attackers.prune(time)
     }
 
-    /** The damage number's main color, which the combo counter matches: NULL's glitch red for kills. */
-    private fun numberColor(popup: Popup): Int =
-        if (popup.killed) DamageNumbers.GLITCH_RED else DamageNumbers.fill(DamageNumbers.color(popup.damage), popup.crit)
+    /** The damage number's heart color, which the combo counter matches: NULL's glitch red for kills. */
+    private fun numberColor(popup: Popup): Int = if (popup.killed) DamageNumbers.GLITCH_RED else DamageNumbers.color(popup.damage)
 
     private fun hit(minecraft: Minecraft, level: ClientLevel, entity: LivingEntity, damage: Float, crit: Boolean, killed: Boolean): Popup {
         val combo = popups.lastOrNull { it.entityId == entity.id && !it.killed && !it.heal }
@@ -216,9 +215,6 @@ object DamageNumberPopups {
             while (popups.size > MAX_POPUPS) popups.removeFirst()
         }
         if (style.burst && burst && (popup.killed || DamageNumbers.isBig(popup.intensity, popup.crit))) burst(level, popup)
-        if (style.sounds && (crit || popup.killed) && inView(minecraft, popup)) {
-            if (popup.killed) DamageSounds.play(DamageSounds.NULL, 0.6f, 1f) else DamageSounds.play(DamageSounds.CRIT, 0.45f, 0.95f + 0.1f * level.random.nextFloat())
-        }
 
         // A combo climbing into a new tier sets off that tier's effects again.
         val tier = if (popup.killed) DamageVfx.NONE else DamageVfx.tier(popup.damage)
@@ -281,9 +277,6 @@ object DamageNumberPopups {
             popup.tier = maxOf(popup.tier, tier)
             popup.tierAge = 0
             if (style.burst) healParticles(level, popup, fresh = last == null)
-            if (style.sounds && inView(Minecraft.getInstance(), popup)) {
-                if (popup.damage >= DamageNumbers.BIG_HEAL) DamageSounds.play(DamageSounds.HEAL_BIG, 0.7f, 1f) else DamageSounds.play(DamageSounds.HEAL, 0.5f, 1f + 0.05f * popup.tier)
-            }
         }
         popup.lifetime = DamageVfx.lifetime(popup.tier)
     }
@@ -305,24 +298,32 @@ object DamageNumberPopups {
         val time = level.gameTime
         if (style.burst) tierParticles(level, popup)
         if (!popup.inView) return
-        if (style.sounds) {
-            tierSound(popup.tier)
-            if (style.slash) DamageSounds.play(DamageSounds.SLASH, 0.5f + 0.1f * popup.tier, 1.15f - 0.08f * popup.tier)
-            if (style.impactFrame && popup.tier >= DamageVfx.MAX) DamageSounds.play(DamageSounds.IMPACT, 1f, 1f)
-        }
+        if (style.sounds) tierSound(popup.tier)
         if (style.focusLines && popup.tier >= DamageVfx.DEVASTATING) DamageImpact.focus(time, popup.tier, popup.seed)
         if (style.impactFrame && popup.tier >= DamageVfx.MAX) DamageImpact.impact(time)
     }
 
-    /** Each tier's own boom, synthesized for the mod, with a quiet sonic boom under MAX for weight. */
+    /** Layered vanilla sounds, heavier for each tier. */
     private fun tierSound(tier: Int) {
         when (tier) {
-            DamageVfx.HEAVY -> DamageSounds.play(DamageSounds.HEAVY, 0.8f, 1f)
-            DamageVfx.BRUTAL -> DamageSounds.play(DamageSounds.BRUTAL, 0.9f, 1f)
-            DamageVfx.DEVASTATING -> DamageSounds.play(DamageSounds.DEVASTATING, 1f, 1f)
+            DamageVfx.HEAVY -> {
+                DamageSounds.play(SoundEvents.NOTE_BLOCK_BASEDRUM.value(), 1.2f, 0.5f)
+                DamageSounds.play(SoundEvents.PLAYER_ATTACK_CRIT, 0.8f, 0.6f)
+            }
+            DamageVfx.BRUTAL -> {
+                DamageSounds.play(SoundEvents.MACE_SMASH_GROUND_HEAVY, 0.9f, 0.9f)
+                DamageSounds.play(SoundEvents.NOTE_BLOCK_BASEDRUM.value(), 1.2f, 0.5f)
+            }
+            DamageVfx.DEVASTATING -> {
+                DamageSounds.play(SoundEvents.MACE_SMASH_GROUND_HEAVY, 1f, 0.7f)
+                DamageSounds.play(SoundEvents.ZOMBIE_ATTACK_IRON_DOOR, 0.6f, 0.6f)
+                DamageSounds.play(SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, 0.9f, 0.7f)
+            }
             DamageVfx.MAX -> {
-                DamageSounds.play(DamageSounds.MAX, 1f, 1f)
-                DamageSounds.play(SoundEvents.WARDEN_SONIC_BOOM, 0.3f, 0.8f)
+                DamageSounds.play(SoundEvents.WARDEN_SONIC_BOOM, 1f, 0.8f)
+                DamageSounds.play(SoundEvents.BELL_BLOCK, 1f, 0.5f)
+                DamageSounds.play(SoundEvents.ANVIL_LAND, 0.5f, 0.5f)
+                DamageSounds.play(SoundEvents.TRIDENT_THUNDER.value(), 0.5f, 1.4f)
             }
         }
     }
@@ -332,13 +333,15 @@ object DamageNumberPopups {
         if (!style.sounds || !popup.inView) return
         if (style.rainbow && popup.tier >= DamageVfx.MAX && !popup.maxTagPlayed && popup.tierAge >= DamageVfx.MAX_TAG_DELAY) {
             popup.maxTagPlayed = true
-            DamageSounds.play(DamageSounds.MAX_TAG, 0.8f, 1f)
+            DamageSounds.play(SoundEvents.FIREWORK_ROCKET_TWINKLE, 1f, 1.2f)
+            DamageSounds.play(SoundEvents.TOTEM_USE, 0.35f, 1.6f)
         }
         if (style.shatter && popup.tier >= DamageVfx.DEVASTATING && !popup.shatterPlayed &&
             DamageVfx.shatter(popup.age.toFloat(), popup.lifetime) > 0f
         ) {
             popup.shatterPlayed = true
-            DamageSounds.play(DamageSounds.SHATTER, 0.8f, 1f)
+            DamageSounds.play(SoundEvents.GLASS_BREAK, 1f, 0.8f)
+            DamageSounds.play(SoundEvents.AMETHYST_CLUSTER_BREAK, 1f, 0.7f)
         }
     }
 
