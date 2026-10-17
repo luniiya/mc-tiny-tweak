@@ -125,4 +125,13 @@ class ComboCounterTest {
         assertTrue(spots.all { kotlin.math.abs(it.second) <= maxUp })
         assertTrue(spots.all { kotlin.math.abs(it.first) >= kotlin.math.cos(ComboCounter.SIDE_SPREAD) - 1e-4f })
     }
+
+    @Test
+    fun `the total's underline shoots out once the total lands, then stays full`() {
+        assertEquals(0f, ComboCounter.underline(0f), 1e-4f)
+        assertEquals(0f, ComboCounter.underline(ComboCounter.UNDERLINE_DELAY), 1e-4f)
+        val mid = ComboCounter.underline(ComboCounter.UNDERLINE_DELAY + ComboCounter.UNDERLINE_TICKS / 2)
+        assertTrue(mid > 0.5f && mid < 1f)
+        assertEquals(1f, ComboCounter.underline(20f), 1e-4f)
+    }
 }

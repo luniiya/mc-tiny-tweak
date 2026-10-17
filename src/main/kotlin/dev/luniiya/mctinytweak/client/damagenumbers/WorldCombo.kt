@@ -185,7 +185,7 @@ object WorldCombo {
             poseStack.scale(SCALE, SCALE, SCALE)
             when (popup.kind) {
                 Kind.COUNT -> count(font, queue, poseStack, popup, age, time, color, fill, outline, chunky, alpha)
-                Kind.TOTAL -> total(font, queue, poseStack, age, popup, fill, outline, chunky, alpha)
+                Kind.TOTAL -> total(font, queue, poseStack, age, popup, color, fill, outline, chunky, alpha)
                 Kind.RANK -> rank(font, queue, poseStack, popup, age, time, fill, outline, chunky, alpha)
             }
             poseStack.popPose()
@@ -239,12 +239,32 @@ object WorldCombo {
         poseStack.popPose()
     }
 
-    /** The combo's damage so far, slamming in a little like a damage number. */
-    private fun total(font: Font, queue: SubmitNodeCollector, poseStack: PoseStack, age: Float, popup: Popup, fill: Int, outline: Int, chunky: Boolean, alpha: Float) {
-        val text = text(DamageNumbers.format(popup.total) + " DMG", chunky, fill)
+    /**
+     * The damage of the whole combo so far, under a small TOTAL DMG label and over a glowing underline that
+     * shoots out from the middle, so it reads as a total and not one hit. It slams in a little like a damage number.
+     */
+    private fun total(font: Font, queue: SubmitNodeCollector, poseStack: PoseStack, age: Float, popup: Popup, color: Int, fill: Int, outline: Int, chunky: Boolean, alpha: Float) {
         val size = 1.3f * ComboCounter.pop(age, 0)
         poseStack.scale(size, size, size)
+        val label = text("TOTAL DMG", chunky, fill)
+        poseStack.pushPose()
+        poseStack.translate(0f, -9f, 0f)
+        poseStack.scale(0.6f, 0.6f, 0.6f)
+        draw(queue, poseStack, font, label, -font.width(label) / 2f, -4f, alpha, outline)
+        poseStack.popPose()
+        val text = text(DamageNumbers.format(popup.total), chunky, fill)
         draw(queue, poseStack, font, text, -font.width(text) / 2f, -4f, alpha, outline)
+        val half = (font.width(text) / 2f + 3f) * ComboCounter.underline(age)
+        if (half <= 0f) return
+        val bright = DamageNumbers.withAlpha(color, alpha)
+        val clear = DamageNumbers.withAlpha(color, 0f)
+        val white = DamageNumbers.withAlpha(DamageNumbers.WHITE, alpha)
+        DamageNumberPopups.glow(queue, poseStack) { pose, v ->
+            DamageNumberPopups.diamond(v, pose, -half, 5.5f, half, 5.5f, 1.2f, bright)
+            DamageNumberPopups.diamond(v, pose, -half * 0.8f, 5.5f, half * 0.8f, 5.5f, 0.45f, white)
+            // A soft glow under the line.
+            DamageNumberPopups.quad(v, pose, -half, 5.5f, DamageNumbers.withAlpha(color, 0.35f * alpha), half, 5.5f, DamageNumbers.withAlpha(color, 0.35f * alpha), half, 8f, clear, -half, 8f, clear)
+        }
     }
 
     /** A new rank slamming in over the mob's head, in the number's colors, rainbow letter by letter at MAX. */

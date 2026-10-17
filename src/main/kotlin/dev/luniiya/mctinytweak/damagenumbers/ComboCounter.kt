@@ -109,6 +109,10 @@ class ComboCounter {
         /** How far, in radians, a count popup strays up or down from straight out to the side. */
         const val SIDE_SPREAD = 0.9f
 
+        /** Ticks the total's underline waits, then takes to shoot out. */
+        const val UNDERLINE_DELAY = 1.5f
+        const val UNDERLINE_TICKS = 4f
+
         /** Shards a milestone bursts. */
         const val SHARDS = 14
 
@@ -201,6 +205,9 @@ class ComboCounter {
 
         /** A spot on the oval around the mob at [angle], as sideways and up, 1 being its edge. */
         fun around(angle: Float): Pair<Float, Float> = cos(angle) to sin(angle)
+
+        /** How far the total's underline has shot out from the middle, from 0 to 1, starting as the total lands. */
+        fun underline(age: Float): Float = easeOutCubic(clamp((age - UNDERLINE_DELAY) / UNDERLINE_TICKS))
 
         /** The new rank's size: slamming in from big with a bounce, then a little wobble. */
         fun rankScale(sinceRank: Float): Float {
