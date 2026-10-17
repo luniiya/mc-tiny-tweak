@@ -15,6 +15,8 @@ class DamageNumbersScreen(private val parent: Screen?) : Screen(Component.transl
     private class Toggle(val key: String, val get: (DamageNumberStyle) -> Boolean, val set: (DamageNumberStyle, Boolean) -> DamageNumberStyle)
 
     private val toggles = listOf(
+        Toggle("combo_counter", { it.comboCounter }) { s, v -> s.copy(comboCounter = v) },
+        Toggle("heal_numbers", { it.healNumbers }) { s, v -> s.copy(healNumbers = v) },
         Toggle("slam", { it.slam }) { s, v -> s.copy(slam = v) },
         Toggle("flash", { it.flash }) { s, v -> s.copy(flash = v) },
         Toggle("shake", { it.shake }) { s, v -> s.copy(shake = v) },
@@ -35,11 +37,17 @@ class DamageNumbersScreen(private val parent: Screen?) : Screen(Component.transl
         Toggle("impact_frame", { it.impactFrame }) { s, v -> s.copy(impactFrame = v) },
     )
 
+    private var titleY = 0
+
     override fun init() {
         val buttonWidth = 150
         val left = width / 2 - buttonWidth - 5
         val right = width / 2 + 5
-        var y = height / 2 - 128
+        val rows = (toggles.size + 1) / 2
+        // The master row, the grid, a gap and Done, centered as a whole.
+        val total = 24 + rows * ROW + 6 + 20
+        titleY = maxOf(4, (height - total) / 2 - 12)
+        var y = titleY + 12
         addRenderableWidget(
             CycleButton.onOffBuilder(Tweaks.damageNumbers())
                 .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers.tooltip")) }
@@ -60,18 +68,18 @@ class DamageNumbersScreen(private val parent: Screen?) : Screen(Component.transl
             addRenderableWidget(
                 CycleButton.onOffBuilder(toggle.get(DamageNumberPopups.style))
                     .withTooltip { Tooltip.create(Component.translatable("$prefix.tooltip")) }
-                    .create(if (i % 2 == 0) left else right, y + i / 2 * 22, buttonWidth, 20, Component.translatable(prefix)) { _, value ->
+                    .create(if (i % 2 == 0) left else right, y + i / 2 * ROW, buttonWidth, 20, Component.translatable(prefix)) { _, value ->
                         DamageNumberPopups.update { toggle.set(it, value) }
                     },
             )
         }
-        y += (toggles.size + 1) / 2 * 22 + 6
+        y += rows * ROW + 6
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE) { onClose() }.bounds(width / 2 - 100, y, 200, 20).build())
     }
 
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(graphics, mouseX, mouseY, partialTick)
-        graphics.drawCenteredString(font, title, width / 2, height / 2 - 142, 0xFFFFFFFF.toInt())
+        graphics.drawCenteredString(font, title, width / 2, titleY, 0xFFFFFFFF.toInt())
     }
 
     override fun onClose() {
@@ -79,4 +87,8 @@ class DamageNumbersScreen(private val parent: Screen?) : Screen(Component.transl
     }
 
     override fun isPauseScreen() = false
+
+    private companion object {
+        const val ROW = 21
+    }
 }

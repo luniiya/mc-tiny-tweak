@@ -40,6 +40,10 @@ data class DamageNumberStyle(
     val sounds: Boolean = true,
     /** Only hits the player made get numbers. Off shows everyone's hits. */
     val onlyMine: Boolean = false,
+    /** Mobs healing show a green +number. */
+    val healNumbers: Boolean = true,
+    /** A gacha-style "24 HITS" counter for the player's hits in a row. */
+    val comboCounter: Boolean = true,
 ) {
     fun serialize() = KEYS.joinToString("") { (key, get, _) -> "$key=${get(this)}\n" }
 
@@ -72,6 +76,8 @@ data class DamageNumberStyle(
             Key("impactFrame", { it.impactFrame }) { s, v -> s.copy(impactFrame = v) },
             Key("sounds", { it.sounds }) { s, v -> s.copy(sounds = v) },
             Key("onlyMine", { it.onlyMine }) { s, v -> s.copy(onlyMine = v) },
+            Key("healNumbers", { it.healNumbers }) { s, v -> s.copy(healNumbers = v) },
+            Key("comboCounter", { it.comboCounter }) { s, v -> s.copy(comboCounter = v) },
         )
 
         fun parse(text: String): DamageNumberStyle {

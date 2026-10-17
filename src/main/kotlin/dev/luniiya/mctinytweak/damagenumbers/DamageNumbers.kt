@@ -71,15 +71,18 @@ object DamageNumbers {
     const val GLITCH_RED = 0xFFFF2050.toInt()
     const val GLITCH_CYAN = 0xFF20F0FF.toInt()
 
-    /** Remembers each entity's last health and reports drops. */
+    /** Remembers each entity's last health and reports changes. */
     class HealthTracker {
         private val last = HashMap<Int, Float>()
 
-        /** Returns how much health [id] lost since the last call, or null for a new entity or no loss. */
+        /**
+         * Returns how much health [id] lost since the last call, negative if it healed, or null for a new
+         * entity or no real change.
+         */
         fun update(id: Int, health: Float): Float? {
             val before = last.put(id, health) ?: return null
             val lost = before - health
-            return if (lost >= MIN_DAMAGE) lost else null
+            return if (lost >= MIN_DAMAGE || -lost >= MIN_DAMAGE) lost else null
         }
 
         /** Forgets entities that are gone, so a reused id does not compare against a stale health. */
@@ -169,6 +172,16 @@ object DamageNumbers {
         val tenths = (damage * 10).roundToInt()
         return if (damage >= 10 || tenths % 10 == 0) (tenths / 10.0).roundToInt().toString() else "${tenths / 10}.${tenths % 10}"
     }
+
+    /** Heal numbers are mint green, with a dark green outline. */
+    const val HEAL_COLOR = 0xFF5CF08A.toInt()
+    const val HEAL_OUTLINE = 0xFF0E4A22.toInt()
+
+    /** Heals from this much get a soft ring. */
+    const val BIG_HEAL = 50f
+
+    /** What a heal shows: `+12`. */
+    fun healLabel(amount: Float) = "+" + format(amount)
 
     /** The text shown: the number, and a ✦ for crits when [critMark] is on. */
     fun label(damage: Float, crit: Boolean, critMark: Boolean) = format(damage) + if (crit && critMark) "✦" else ""

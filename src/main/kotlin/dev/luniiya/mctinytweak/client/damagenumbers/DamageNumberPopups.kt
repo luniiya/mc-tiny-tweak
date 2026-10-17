@@ -69,6 +69,8 @@ object DamageNumberPopups {
         var crit: Boolean,
         val killed: Boolean,
         val seed: Int,
+        /** A green +number for healing instead of damage. */
+        val heal: Boolean = false,
     ) {
         /** Ticks since the number last popped, which a combo hit restarts. */
         var age = 0
@@ -97,6 +99,7 @@ object DamageNumberPopups {
         ClientTickEvents.END_CLIENT_TICK.register(::tick)
         WorldRenderEvents.BEFORE_ENTITIES.register(::render)
         DamageImpact.register()
+        ComboHud.register()
     }
 
     fun load() {
@@ -160,11 +163,17 @@ object DamageNumberPopups {
         for (entity in level.entitiesForRendering()) {
             if (entity !is LivingEntity || entity === player || entity.distanceToSqr(player) > RANGE * RANGE) continue
             seen += entity.id
-            val lost = health.update(entity.id, entity.health) ?: continue
+            val change = health.update(entity.id, entity.health) ?: continue
+            if (change < 0f) {
+                if (style.healNumbers && !style.onlyMine) heal(level, entity, -change)
+                continue
+            }
             val crit = crits.take(entity.id, time)
             val killed = kills.take(entity.id, time)
-            if (!DamageNumbers.shows(style.onlyMine, attackers.of(entity.id, time), player.id)) continue
-            hit(minecraft, level, entity, lost, crit, killed)
+            val attacker = attackers.of(entity.id, time)
+            if (attacker == player.id) ComboHud.hit(time, change)
+            if (!DamageNumbers.shows(style.onlyMine, attacker, player.id)) continue
+            hit(minecraft, level, entity, change, crit, killed)
         }
         health.retain(seen)
         crits.prune(time)
@@ -173,7 +182,7 @@ object DamageNumberPopups {
     }
 
     private fun hit(minecraft: Minecraft, level: ClientLevel, entity: LivingEntity, damage: Float, crit: Boolean, killed: Boolean) {
-        val combo = popups.lastOrNull { it.entityId == entity.id && !it.killed }
+        val combo = popups.lastOrNull { it.entityId == entity.id && !it.killed && !it.heal }
             ?.takeIf { !killed && style.combo && DamageNumbers.continuesCombo(it.age) }
         val popup: Popup
         var burst = true
@@ -230,6 +239,57 @@ object DamageNumberPopups {
             forward.x().toDouble(), forward.y().toDouble(), forward.z().toDouble(),
             viewCos,
         )
+    }
+
+    /** A green +number rising off a healing mob, adding up quick heals like combos do. */
+    private fun heal(level: ClientLevel, entity: LivingEntity, amount: Float) {
+        val last = popups.lastOrNull { it.entityId == entity.id && it.heal }
+            ?.takeIf { style.combo && DamageNumbers.continuesCombo(it.age) }
+        val popup = if (last != null) {
+            last.y += DamageNumbers.rise(last.age.toFloat(), last.lifetime)
+            last.damage += amount
+            last.age = 0
+            last
+        } else {
+            val random = entity.random
+            Popup(
+                entity.id,
+                entity.x + (random.nextDouble() - 0.5) * entity.bbWidth,
+                entity.y + entity.bbHeight + 0.2,
+                entity.z + (random.nextDouble() - 0.5) * entity.bbWidth,
+                entity.y + entity.bbHeight * 0.5,
+                DamageNumbers.clearance(entity.bbWidth.toDouble()),
+                amount,
+                crit = false,
+                killed = false,
+                seed = random.nextInt(),
+                heal = true,
+            ).also {
+                popups += it
+                while (popups.size > MAX_POPUPS) popups.removeFirst()
+            }
+        }
+        // Bigger heals get a longer life, like damage tiers, and more of everything.
+        val tier = DamageVfx.tier(popup.damage)
+        if (tier > popup.tier || last == null) {
+            popup.tier = maxOf(popup.tier, tier)
+            popup.tierAge = 0
+            if (style.burst) healParticles(level, popup, fresh = last == null)
+        }
+        popup.lifetime = DamageVfx.lifetime(popup.tier)
+    }
+
+    /** Hearts and green sparkles, many more for big heals. */
+    private fun healParticles(level: ClientLevel, popup: Popup, fresh: Boolean) {
+        val hearts = if (fresh) 2 + popup.tier * 3 else popup.tier * 3
+        sphere(level, popup.x, popup.y + 0.1, popup.z, popup.clearance, hearts, 0.05, 0.08) { ParticleTypes.HEART }
+        sphere(level, popup.x, popup.centerY, popup.z, popup.clearance, 4 + popup.tier * 14, 0.1, 0.15) { ParticleTypes.HAPPY_VILLAGER }
+        if (popup.tier >= DamageVfx.DEVASTATING) {
+            sphere(level, popup.x, popup.y + 0.2, popup.z, popup.clearance, 40, 0.25, 0.3) { ParticleTypes.END_ROD }
+        }
+        if (popup.tier >= DamageVfx.MAX) {
+            sphere(level, popup.x, popup.y + 0.2, popup.z, popup.clearance, 70, 0.35, 0.4) { ParticleTypes.TOTEM_OF_UNDYING }
+        }
     }
 
     private fun tierUp(level: ClientLevel, popup: Popup) {
@@ -348,6 +408,7 @@ object DamageNumberPopups {
         crits.clear()
         kills.clear()
         attackers.clear()
+        ComboHud.combo.clear()
         DamageImpact.reset()
     }
 
@@ -367,6 +428,10 @@ object DamageNumberPopups {
             val intensity = if (popup.killed) 1f else popup.intensity
             val big = popup.killed || DamageNumbers.isBig(intensity, popup.crit)
 
+            if (popup.heal) {
+                drawHeal(font, queue, poseStack, camera, popup, age, alpha)
+                continue
+            }
             if (style.slash && popup.tier >= DamageVfx.HEAVY) {
                 billboard(poseStack, camera, popup.x, popup.centerY, popup.z, popup.clearance)
                 slashes(queue, poseStack, popup, tierAge)
@@ -536,6 +601,83 @@ object DamageNumberPopups {
         poseStack.popPose()
     }
 
+    /**
+     * A heal: a soft green +number that pops in gently and floats up. Bigger heals add green rings, then
+     * slow green rays behind, and stay longer.
+     */
+    private fun drawHeal(font: Font, queue: SubmitNodeCollector, poseStack: PoseStack, camera: net.minecraft.client.renderer.state.CameraRenderState, popup: Popup, age: Float, alpha: Float) {
+        val tierAge = popup.tierAge + partialAge(age, popup)
+        val size = DamageNumbers.scale(age, if (popup.tier > 0) 0.4f + 0.15f * popup.tier else 0f, slam = false)
+        billboard(poseStack, camera, popup.x, popup.y + DamageNumbers.rise(age, popup.lifetime), popup.z, popup.clearance)
+        poseStack.pushPose()
+        poseStack.translate(0f, 4f * size, -1f)
+        if (style.rays && popup.tier >= DamageVfx.BRUTAL) healRays(queue, poseStack, popup, tierAge, alpha)
+        if (style.rings && popup.damage >= DamageNumbers.BIG_HEAL) healRings(queue, poseStack, popup, tierAge)
+        poseStack.popPose()
+        poseStack.scale(size, size, size)
+        val value = if (style.countUp) DamageNumbers.countUp(popup.damage, age) else popup.damage
+        // A gentle shimmer: each character brightens in turn.
+        val text = Component.empty()
+        DamageNumbers.healLabel(value).forEachIndexed { i, c ->
+            val shine = (0.5f + 0.5f * sin(age * 0.6f - i * 0.8f)) * 0.45f
+            text.append(Component.literal(c.toString()).withStyle(textStyle(DamageNumbers.mix(DamageNumbers.HEAL_COLOR, DamageNumbers.WHITE, shine))))
+        }
+        val seq = text.visualOrderText
+        queue.submitText(poseStack, -font.width(seq) / 2f, 0f, seq, false, Font.DisplayMode.NORMAL, LightTexture.FULL_BRIGHT, DamageNumbers.withAlpha(DamageNumbers.WHITE, alpha), 0, DamageNumbers.withAlpha(DamageNumbers.HEAL_OUTLINE, alpha))
+        poseStack.popPose()
+    }
+
+    /** The fraction of a tick, so heal effects keyed to tier age stay smooth. */
+    private fun partialAge(age: Float, popup: Popup) = age - popup.age
+
+    private fun healRings(queue: SubmitNodeCollector, poseStack: PoseStack, popup: Popup, tierAge: Float) {
+        glow(queue, poseStack) { pose, v ->
+            for (index in 0 until maxOf(1, DamageVfx.rings(popup.tier))) {
+                val radius = DamageVfx.ringRadius(tierAge * 0.7f, index, popup.tier) ?: continue
+                val width = DamageVfx.ringWidth(tierAge * 0.7f, index)
+                val a = DamageVfx.ringAlpha(tierAge * 0.7f, index) * 0.8f
+                ring(v, pose, radius, width, if (index % 2 == 0) DamageNumbers.HEAL_COLOR else DamageNumbers.WHITE, a)
+            }
+        }
+    }
+
+    private fun healRays(queue: SubmitNodeCollector, poseStack: PoseStack, popup: Popup, tierAge: Float, alpha: Float) {
+        val count = 8 + 4 * (popup.tier - DamageVfx.BRUTAL)
+        val length = DamageVfx.rayLength(tierAge * 0.5f + DamageVfx.RAY_IN / 2f, popup.tier) * 0.8f
+        glow(queue, poseStack) { pose, v ->
+            for (i in 0 until count) {
+                val angle = DamageVfx.rayAngle(i, count, tierAge * 0.4f)
+                val color = if (i % 2 == 0) DamageNumbers.HEAL_COLOR else DamageNumbers.mix(DamageNumbers.HEAL_COLOR, DamageNumbers.WHITE, 0.6f)
+                tri(
+                    v, pose,
+                    0f, 0f, DamageNumbers.withAlpha(color, 0.5f * alpha),
+                    cos(angle - 0.08f) * length, sin(angle - 0.08f) * length, DamageNumbers.withAlpha(color, 0f),
+                    cos(angle + 0.08f) * length, sin(angle + 0.08f) * length, DamageNumbers.withAlpha(color, 0f),
+                )
+            }
+        }
+    }
+
+    /** A soft glowing band at [radius], brightest in the middle of its [width]. */
+    private fun ring(v: VertexConsumer, pose: PoseStack.Pose, radius: Float, width: Float, base: Int, alpha: Float) {
+        val mid = DamageNumbers.withAlpha(base, alpha)
+        val clear = DamageNumbers.withAlpha(base, 0f)
+        val segments = 48
+        for (s in 0 until segments) {
+            val a0 = (s * 2 * Math.PI / segments).toFloat()
+            val a1 = ((s + 1) * 2 * Math.PI / segments).toFloat()
+            for (from in floatArrayOf(maxOf(radius - width, 0f), radius + width)) {
+                quad(
+                    v, pose,
+                    cos(a0) * from, sin(a0) * from, clear,
+                    cos(a1) * from, sin(a1) * from, clear,
+                    cos(a1) * radius, sin(a1) * radius, mid,
+                    cos(a0) * radius, sin(a0) * radius, mid,
+                )
+            }
+        }
+    }
+
     /** Shockwave rings: glowing bands that fly out from the number and thin as they go. */
     private fun rings(queue: SubmitNodeCollector, poseStack: PoseStack, popup: Popup, tierAge: Float) {
         glow(queue, poseStack) { pose, v ->
@@ -548,23 +690,7 @@ object DamageNumberPopups {
                     index % 2 == 1 -> DamageNumbers.WHITE
                     else -> DamageNumbers.color(popup.damage)
                 }
-                val mid = DamageNumbers.withAlpha(base, a)
-                val clear = DamageNumbers.withAlpha(base, 0f)
-                val segments = 48
-                for (s in 0 until segments) {
-                    val a0 = (s * 2 * Math.PI / segments).toFloat()
-                    val a1 = ((s + 1) * 2 * Math.PI / segments).toFloat()
-                    for ((from, to) in listOf(radius - width to radius, radius + width to radius)) {
-                        val f = maxOf(from, 0f)
-                        quad(
-                            v, pose,
-                            cos(a0) * f, sin(a0) * f, clear,
-                            cos(a1) * f, sin(a1) * f, clear,
-                            cos(a1) * to, sin(a1) * to, mid,
-                            cos(a0) * to, sin(a0) * to, mid,
-                        )
-                    }
-                }
+                ring(v, pose, radius, width, base, a)
             }
         }
     }

@@ -15,12 +15,18 @@ class DamageNumbersTest {
     }
 
     @Test
-    fun `healing and rounding noise give no number`() {
+    fun `healing gives a negative change and rounding noise none`() {
         val tracker = DamageNumbers.HealthTracker()
         tracker.update(1, 10f)
-        assertNull(tracker.update(1, 12f))
+        assertEquals(-2f, tracker.update(1, 12f)!!, 1e-4f)
         assertNull(tracker.update(1, 11.99f))
         assertEquals(2f, tracker.update(1, 9.99f)!!, 1e-4f)
+    }
+
+    @Test
+    fun `heals show a plus`() {
+        assertEquals("+12", DamageNumbers.healLabel(12f))
+        assertEquals("+0.5", DamageNumbers.healLabel(0.5f))
     }
 
     @Test
