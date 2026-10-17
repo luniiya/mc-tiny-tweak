@@ -9,11 +9,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Tells the damage numbers which entity was just hit by `/kill`. TAIL only runs on the client thread. */
+/** Tells the damage numbers who hurt an entity, and which entity was just hit by `/kill`. TAIL only runs on the client thread. */
 @Mixin(ClientPacketListener.class)
-abstract class ClientPacketListenerKillMixin {
+abstract class ClientPacketListenerDamageMixin {
 	@Inject(method = "handleDamageEvent", at = @At("TAIL"))
-	private void mc_tiny_tweak$recordKill(ClientboundDamageEventPacket packet, CallbackInfo ci) {
+	private void mc_tiny_tweak$recordDamage(ClientboundDamageEventPacket packet, CallbackInfo ci) {
+		DamageNumberPopups.damaged(packet.entityId(), packet.sourceCauseId());
 		if (packet.sourceType().is(DamageTypes.GENERIC_KILL)) DamageNumberPopups.killed(packet.entityId());
 	}
 }

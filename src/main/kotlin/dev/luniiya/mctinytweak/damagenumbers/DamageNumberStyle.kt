@@ -38,6 +38,8 @@ data class DamageNumberStyle(
     val impactFrame: Boolean = true,
     /** 100+ damage plays a heavier sound for each tier. Only you hear it. */
     val sounds: Boolean = true,
+    /** Only hits the player made get numbers. Off shows everyone's hits. */
+    val onlyMine: Boolean = false,
 ) {
     fun serialize() = KEYS.joinToString("") { (key, get, _) -> "$key=${get(this)}\n" }
 
@@ -69,6 +71,7 @@ data class DamageNumberStyle(
             Key("rainbow", { it.rainbow }) { s, v -> s.copy(rainbow = v) },
             Key("impactFrame", { it.impactFrame }) { s, v -> s.copy(impactFrame = v) },
             Key("sounds", { it.sounds }) { s, v -> s.copy(sounds = v) },
+            Key("onlyMine", { it.onlyMine }) { s, v -> s.copy(onlyMine = v) },
         )
 
         fun parse(text: String): DamageNumberStyle {

@@ -9,6 +9,7 @@ class DamageNumberStyleTest {
         val style = DamageNumberStyle()
         assertTrue(listOf(style.slam, style.flash, style.shake, style.burst, style.gradient, style.combo, style.countUp, style.critMark).all { it })
         assertTrue(listOf(style.font, style.rings, style.slash, style.afterimages, style.rays, style.shatter, style.focusLines, style.rainbow, style.impactFrame, style.sounds).all { it })
+        assertFalse(style.onlyMine, "everyone's hits show by default")
         assertEquals(style, DamageNumberStyle.parse(""))
     }
 
@@ -33,6 +34,7 @@ class DamageNumberStyleTest {
             DamageNumberStyle(rainbow = false),
             DamageNumberStyle(impactFrame = false),
             DamageNumberStyle(sounds = false),
+            DamageNumberStyle(onlyMine = true),
         )
         for (style in styles) assertEquals(style, DamageNumberStyle.parse(style.serialize()))
     }

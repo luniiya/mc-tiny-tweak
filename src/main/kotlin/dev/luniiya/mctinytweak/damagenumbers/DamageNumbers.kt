@@ -116,6 +116,54 @@ object DamageNumbers {
         fun clear() = at.clear()
     }
 
+    /** Ticks a mob stays invulnerable after a hit; harder hits within it land without a new damage event. */
+    const val HURT_TICKS = 20
+
+    /**
+     * Remembers who last hurt each entity, from the damage events the server sends. Hits that land while the
+     * entity is still invulnerable from the last one come without an event, so they keep the last attacker
+     * for [HURT_TICKS].
+     */
+    class Attackers {
+        private val last = HashMap<Int, Pair<Int, Long>>()
+
+        /** [cause] is the attacking entity's id, or -1 for none, like the packet sends it. */
+        fun record(id: Int, cause: Int, time: Long) {
+            last[id] = cause to time
+        }
+
+        /** Who hurt [id] within [HURT_TICKS] before [time], or null if no one we know of. */
+        fun of(id: Int, time: Long): Int? {
+            val (cause, at) = last[id] ?: return null
+            return cause.takeIf { cause >= 0 && time - at in 0..HURT_TICKS }
+        }
+
+        fun prune(time: Long) {
+            last.values.removeIf { time - it.second > HURT_TICKS }
+        }
+
+        fun clear() = last.clear()
+    }
+
+    /** Whether a hit should get a number: everyone's, or with [onlyMine] only those [attacker] is [me] for. */
+    fun shows(onlyMine: Boolean, attacker: Int?, me: Int) = !onlyMine || attacker == me
+
+    /**
+     * The cosine of the widest angle from the view direction that is still on screen, from the vertical
+     * [fovDegrees] and the screen's [aspect], with a little margin so things at the edge count.
+     */
+    fun viewCos(fovDegrees: Double, aspect: Double): Double {
+        val half = Math.atan(Math.tan(Math.toRadians(fovDegrees) / 2) * maxOf(aspect, 1.0))
+        return Math.cos(minOf(half + Math.toRadians(5.0), Math.toRadians(89.0)))
+    }
+
+    /** True if a spot ([dx], [dy], [dz]) from the camera is within [viewCos] of the camera's [forward] direction. */
+    fun inView(dx: Double, dy: Double, dz: Double, fx: Double, fy: Double, fz: Double, viewCos: Double): Boolean {
+        val length = Math.sqrt(dx * dx + dy * dy + dz * dz)
+        if (length < 1e-6) return true
+        return (dx * fx + dy * fy + dz * fz) / length >= viewCos
+    }
+
     /** `6` for whole numbers and anything from 10 up, otherwise one decimal like `4.5`. */
     fun format(damage: Float): String {
         val tenths = (damage * 10).roundToInt()

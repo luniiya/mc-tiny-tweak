@@ -173,4 +173,44 @@ class DamageNumbersTest {
         assertTrue((0 until 200).all { DamageNumbers.glitchJolt(it, 1) in -4f..4f })
         assertTrue((0 until 200).any { DamageNumbers.glitchJolt(it, 1) != 0f })
     }
+
+    @Test
+    fun `the last attacker counts through the invulnerability window, then is forgotten`() {
+        val attackers = DamageNumbers.Attackers()
+        assertNull(attackers.of(1, 100))
+        attackers.record(1, 42, 100)
+        assertEquals(42, attackers.of(1, 100))
+        // A harder hit 10 ticks later comes without a damage event, but is still the same attacker's.
+        assertEquals(42, attackers.of(1, 110))
+        assertNull(attackers.of(1, 100 + DamageNumbers.HURT_TICKS + 1L))
+        // Damage from no one, like fire or /damage without a source, has no attacker.
+        attackers.record(2, -1, 100)
+        assertNull(attackers.of(2, 100))
+        attackers.prune(100 + DamageNumbers.HURT_TICKS + 1L)
+        attackers.record(3, 7, 200)
+        assertNull(attackers.of(1, 100))
+        assertEquals(7, attackers.of(3, 200))
+    }
+
+    @Test
+    fun `only my hits hides everyone else's, off shows all`() {
+        assertTrue(DamageNumbers.shows(onlyMine = false, attacker = null, me = 5))
+        assertTrue(DamageNumbers.shows(onlyMine = false, attacker = 9, me = 5))
+        assertTrue(DamageNumbers.shows(onlyMine = true, attacker = 5, me = 5))
+        assertFalse(DamageNumbers.shows(onlyMine = true, attacker = 9, me = 5))
+        assertFalse(DamageNumbers.shows(onlyMine = true, attacker = null, me = 5))
+    }
+
+    @Test
+    fun `spots in front of the camera are in view, behind it are not`() {
+        val cos = DamageNumbers.viewCos(70.0, 16.0 / 9)
+        assertTrue(DamageNumbers.inView(0.0, 0.0, 10.0, 0.0, 0.0, 1.0, cos))
+        assertFalse(DamageNumbers.inView(0.0, 0.0, -10.0, 0.0, 0.0, 1.0, cos))
+        assertFalse(DamageNumbers.inView(10.0, 0.0, 0.0, 0.0, 0.0, 1.0, cos), "straight to the side is off screen")
+        // 50 degrees to the side is on a wide screen but not a narrow one.
+        val side = Math.toRadians(50.0)
+        assertTrue(DamageNumbers.inView(Math.sin(side), 0.0, Math.cos(side), 0.0, 0.0, 1.0, cos))
+        assertFalse(DamageNumbers.inView(Math.sin(side), 0.0, Math.cos(side), 0.0, 0.0, 1.0, DamageNumbers.viewCos(70.0, 1.0)))
+        assertTrue(DamageNumbers.inView(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, cos), "right at the camera counts")
+    }
 }

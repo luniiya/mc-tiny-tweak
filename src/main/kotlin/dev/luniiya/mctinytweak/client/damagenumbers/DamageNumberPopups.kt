@@ -77,12 +77,16 @@ object DamageNumberPopups {
         var lifetime = DamageNumbers.LIFETIME
         var maxTagPlayed = false
         var shatterPlayed = false
+
+        /** True if the player could see the hit, so its sounds and screen effects are theirs to get. */
+        var inView = true
         val intensity get() = DamageNumbers.intensity(damage, crit)
     }
 
     private val health = DamageNumbers.HealthTracker()
     private val crits = DamageNumbers.Marks()
     private val kills = DamageNumbers.Marks()
+    private val attackers = DamageNumbers.Attackers()
     private val popups = ArrayList<Popup>()
     private var level: ClientLevel? = null
 
@@ -119,6 +123,13 @@ object DamageNumberPopups {
         crits.mark(entityId, time)
     }
 
+    /** Called when the server says [entityId] was hurt, by [causeId] or -1 for no one. */
+    @JvmStatic
+    fun damaged(entityId: Int, causeId: Int) {
+        val time = Minecraft.getInstance().level?.gameTime ?: return
+        attackers.record(entityId, causeId, time)
+    }
+
     /** Called when [entityId] takes `/kill` damage, so its last number shows NULL instead. */
     @JvmStatic
     fun killed(entityId: Int) {
@@ -148,14 +159,18 @@ object DamageNumberPopups {
             if (entity !is LivingEntity || entity === player || entity.distanceToSqr(player) > RANGE * RANGE) continue
             seen += entity.id
             val lost = health.update(entity.id, entity.health) ?: continue
-            hit(level, entity, lost, crits.take(entity.id, time), kills.take(entity.id, time))
+            val crit = crits.take(entity.id, time)
+            val killed = kills.take(entity.id, time)
+            if (!DamageNumbers.shows(style.onlyMine, attackers.of(entity.id, time), player.id)) continue
+            hit(minecraft, level, entity, lost, crit, killed)
         }
         health.retain(seen)
         crits.prune(time)
         kills.prune(time)
+        attackers.prune(time)
     }
 
-    private fun hit(level: ClientLevel, entity: LivingEntity, damage: Float, crit: Boolean, killed: Boolean) {
+    private fun hit(minecraft: Minecraft, level: ClientLevel, entity: LivingEntity, damage: Float, crit: Boolean, killed: Boolean) {
         val combo = popups.lastOrNull { it.entityId == entity.id && !it.killed }
             ?.takeIf { !killed && style.combo && DamageNumbers.continuesCombo(it.age) }
         val popup: Popup
@@ -191,6 +206,7 @@ object DamageNumberPopups {
         // A combo climbing into a new tier sets off that tier's effects again.
         val tier = if (popup.killed) DamageVfx.NONE else DamageVfx.tier(popup.damage)
         if (tier > popup.tier) {
+            popup.inView = inView(minecraft, popup)
             popup.tier = tier
             popup.tierAge = 0
             popup.maxTagPlayed = false
@@ -199,10 +215,25 @@ object DamageNumberPopups {
         popup.lifetime = DamageVfx.lifetime(popup.tier)
     }
 
+    /** True if the number's spot is on screen, so hits behind the player do not boom and flash at them. */
+    private fun inView(minecraft: Minecraft, popup: Popup): Boolean {
+        val camera = minecraft.gameRenderer.mainCamera
+        val forward = camera.forwardVector()
+        val window = minecraft.window
+        val viewCos = DamageNumbers.viewCos(minecraft.options.fov().get().toDouble(), window.width.toDouble() / maxOf(window.height, 1))
+        val eye = camera.position()
+        return DamageNumbers.inView(
+            popup.x - eye.x, popup.y - eye.y, popup.z - eye.z,
+            forward.x().toDouble(), forward.y().toDouble(), forward.z().toDouble(),
+            viewCos,
+        )
+    }
+
     private fun tierUp(level: ClientLevel, popup: Popup) {
         val time = level.gameTime
-        if (style.sounds) tierSound(level, popup.tier)
         if (style.burst) tierParticles(level, popup)
+        if (!popup.inView) return
+        if (style.sounds) tierSound(level, popup.tier)
         if (style.focusLines && popup.tier >= DamageVfx.DEVASTATING) DamageImpact.focus(time, popup.tier, popup.seed)
         if (style.impactFrame && popup.tier >= DamageVfx.MAX) DamageImpact.impact(time)
     }
@@ -239,7 +270,7 @@ object DamageNumberPopups {
 
     /** The MAX tag's sparkle and the glass breaking when a number shatters, timed to the animation. */
     private fun delayedSounds(level: ClientLevel, popup: Popup) {
-        if (!style.sounds) return
+        if (!style.sounds || !popup.inView) return
         if (style.rainbow && popup.tier >= DamageVfx.MAX && !popup.maxTagPlayed && popup.tierAge >= DamageVfx.MAX_TAG_DELAY) {
             popup.maxTagPlayed = true
             play(level, SoundEvents.FIREWORK_ROCKET_TWINKLE, 1f, 1.2f)
@@ -301,6 +332,7 @@ object DamageNumberPopups {
         health.clear()
         crits.clear()
         kills.clear()
+        attackers.clear()
         DamageImpact.reset()
     }
 

@@ -43,8 +43,15 @@ class DamageNumbersScreen(private val parent: Screen?) : Screen(Component.transl
         addRenderableWidget(
             CycleButton.onOffBuilder(Tweaks.damageNumbers())
                 .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers.tooltip")) }
-                .create(width / 2 - 100, y, 200, 20, Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers")) { _, value ->
+                .create(left, y, buttonWidth, 20, Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers")) { _, value ->
                     Tweaks.update { it.copy(damageNumbers = value) }
+                },
+        )
+        addRenderableWidget(
+            CycleButton.onOffBuilder(DamageNumberPopups.style.onlyMine)
+                .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.damage_numbers.only_mine.tooltip")) }
+                .create(right, y, buttonWidth, 20, Component.translatable("screen.mc_tiny_tweak.damage_numbers.only_mine")) { _, value ->
+                    DamageNumberPopups.update { it.copy(onlyMine = value) }
                 },
         )
         y += 24
