@@ -1,0 +1,16 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "mc_tiny_tweak:lilita_one.ttf",
+      "size": 11.0,
+      "oversample": 6.0,
+      "shift": [0.0, 1.0],
+      "skip": "✦"
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}

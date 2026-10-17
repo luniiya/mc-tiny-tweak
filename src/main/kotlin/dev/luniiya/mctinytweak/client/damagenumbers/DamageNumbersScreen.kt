@@ -23,13 +23,23 @@ class DamageNumbersScreen(private val parent: Screen?) : Screen(Component.transl
         Toggle("combo", { it.combo }) { s, v -> s.copy(combo = v) },
         Toggle("count_up", { it.countUp }) { s, v -> s.copy(countUp = v) },
         Toggle("crit_mark", { it.critMark }) { s, v -> s.copy(critMark = v) },
+        Toggle("font", { it.font }) { s, v -> s.copy(font = v) },
+        Toggle("sounds", { it.sounds }) { s, v -> s.copy(sounds = v) },
+        Toggle("rings", { it.rings }) { s, v -> s.copy(rings = v) },
+        Toggle("slash", { it.slash }) { s, v -> s.copy(slash = v) },
+        Toggle("afterimages", { it.afterimages }) { s, v -> s.copy(afterimages = v) },
+        Toggle("rays", { it.rays }) { s, v -> s.copy(rays = v) },
+        Toggle("shatter", { it.shatter }) { s, v -> s.copy(shatter = v) },
+        Toggle("focus_lines", { it.focusLines }) { s, v -> s.copy(focusLines = v) },
+        Toggle("rainbow", { it.rainbow }) { s, v -> s.copy(rainbow = v) },
+        Toggle("impact_frame", { it.impactFrame }) { s, v -> s.copy(impactFrame = v) },
     )
 
     override fun init() {
         val buttonWidth = 150
         val left = width / 2 - buttonWidth - 5
         val right = width / 2 + 5
-        var y = height / 2 - 72
+        var y = height / 2 - 128
         addRenderableWidget(
             CycleButton.onOffBuilder(Tweaks.damageNumbers())
                 .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers.tooltip")) }
@@ -37,24 +47,24 @@ class DamageNumbersScreen(private val parent: Screen?) : Screen(Component.transl
                     Tweaks.update { it.copy(damageNumbers = value) }
                 },
         )
-        y += 28
+        y += 24
         toggles.forEachIndexed { i, toggle ->
             val prefix = "screen.mc_tiny_tweak.damage_numbers.${toggle.key}"
             addRenderableWidget(
                 CycleButton.onOffBuilder(toggle.get(DamageNumberPopups.style))
                     .withTooltip { Tooltip.create(Component.translatable("$prefix.tooltip")) }
-                    .create(if (i % 2 == 0) left else right, y + i / 2 * 24, buttonWidth, 20, Component.translatable(prefix)) { _, value ->
+                    .create(if (i % 2 == 0) left else right, y + i / 2 * 22, buttonWidth, 20, Component.translatable(prefix)) { _, value ->
                         DamageNumberPopups.update { toggle.set(it, value) }
                     },
             )
         }
-        y += (toggles.size + 1) / 2 * 24 + 8
+        y += (toggles.size + 1) / 2 * 22 + 6
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE) { onClose() }.bounds(width / 2 - 100, y, 200, 20).build())
     }
 
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(graphics, mouseX, mouseY, partialTick)
-        graphics.drawCenteredString(font, title, width / 2, height / 2 - 90, 0xFFFFFFFF.toInt())
+        graphics.drawCenteredString(font, title, width / 2, height / 2 - 142, 0xFFFFFFFF.toInt())
     }
 
     override fun onClose() {

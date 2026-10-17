@@ -9,6 +9,7 @@
     "client.armorbar.HumanoidArmorLayerMixin",
     "client.damagenumbers.ClientPacketListenerCritMixin",
     "client.damagenumbers.ClientPacketListenerKillMixin",
+    "client.damagenumbers.GameRendererPostEffectInvoker",
     "client.freecam.AbstractContainerScreenAccessor",
     "client.freecam.AgentScreenInputMixin",
     "client.freecam.AgentScreenKeyboardMixin",

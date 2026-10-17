@@ -129,6 +129,9 @@ class DamageNumbersTest {
         assertEquals(0f, DamageNumbers.alpha(DamageNumbers.LIFETIME.toFloat()), 1e-4f)
         assertEquals(0f, DamageNumbers.rise(0f), 1e-4f)
         assertTrue(DamageNumbers.rise(12f) < DamageNumbers.rise(24f))
+        // Longer lifetimes fade and rise later.
+        assertEquals(1f, DamageNumbers.alpha(DamageNumbers.LIFETIME.toFloat(), lifetime = 40), 1e-4f)
+        assertTrue(DamageNumbers.rise(12f, lifetime = 40) < DamageNumbers.rise(12f))
         assertEquals(0x80FF0000.toInt(), DamageNumbers.withAlpha(0xFFFF0000.toInt(), 128 / 255f))
     }
 

@@ -8,6 +8,7 @@ class DamageNumberStyleTest {
     fun `every effect is on by default`() {
         val style = DamageNumberStyle()
         assertTrue(listOf(style.slam, style.flash, style.shake, style.burst, style.gradient, style.combo, style.countUp, style.critMark).all { it })
+        assertTrue(listOf(style.font, style.rings, style.slash, style.afterimages, style.rays, style.shatter, style.focusLines, style.rainbow, style.impactFrame, style.sounds).all { it })
         assertEquals(style, DamageNumberStyle.parse(""))
     }
 
@@ -22,6 +23,16 @@ class DamageNumberStyleTest {
             DamageNumberStyle(combo = false),
             DamageNumberStyle(countUp = false),
             DamageNumberStyle(critMark = false),
+            DamageNumberStyle(font = false),
+            DamageNumberStyle(rings = false),
+            DamageNumberStyle(slash = false),
+            DamageNumberStyle(afterimages = false),
+            DamageNumberStyle(rays = false),
+            DamageNumberStyle(shatter = false),
+            DamageNumberStyle(focusLines = false),
+            DamageNumberStyle(rainbow = false),
+            DamageNumberStyle(impactFrame = false),
+            DamageNumberStyle(sounds = false),
         )
         for (style in styles) assertEquals(style, DamageNumberStyle.parse(style.serialize()))
     }

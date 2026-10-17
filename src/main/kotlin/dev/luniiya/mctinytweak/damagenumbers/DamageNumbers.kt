@@ -213,12 +213,12 @@ object DamageNumbers {
     /** How many sparks a big hit bursts. */
     fun sparks(intensity: Float, crit: Boolean) = (8 + 14 * intensity + if (crit) 6 else 0).roundToInt()
 
-    /** Opacity from 0 to 1, fading out over the last [FADE_TICKS]. */
-    fun alpha(age: Float): Float = clamp((LIFETIME - age) / FADE_TICKS)
+    /** Opacity from 0 to 1, fading out over the last [FADE_TICKS] of [lifetime]. */
+    fun alpha(age: Float, lifetime: Int = LIFETIME): Float = clamp((lifetime - age) / FADE_TICKS)
 
-    /** Blocks risen at [age]: quick at first, then slowing down. */
-    fun rise(age: Float): Float {
-        val t = clamp(age / LIFETIME)
+    /** Blocks risen at [age]: quick at first, then slowing down by the end of [lifetime]. */
+    fun rise(age: Float, lifetime: Int = LIFETIME): Float {
+        val t = clamp(age / lifetime)
         return 0.8f * (1f - (1f - t) * (1f - t))
     }
 

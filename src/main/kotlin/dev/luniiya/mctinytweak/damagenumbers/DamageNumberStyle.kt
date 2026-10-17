@@ -18,6 +18,26 @@ data class DamageNumberStyle(
     val countUp: Boolean = true,
     /** Crits get a ✦ after the number. */
     val critMark: Boolean = true,
+    /** Numbers use the mod's chunky font instead of Minecraft's. */
+    val font: Boolean = true,
+    /** 100+ damage sends shockwave rings out from the number. */
+    val rings: Boolean = true,
+    /** 100+ damage slashes across the mob. */
+    val slash: Boolean = true,
+    /** 200+ damage leaves afterimages trailing the number. */
+    val afterimages: Boolean = true,
+    /** 500+ damage spins light rays behind the number. */
+    val rays: Boolean = true,
+    /** 500+ damage shatters the number at the end. */
+    val shatter: Boolean = true,
+    /** 500+ damage draws anime focus lines around the screen. */
+    val focusLines: Boolean = true,
+    /** 990+ damage cycles every heart color across the digits and adds a MAX tag and a starburst. */
+    val rainbow: Boolean = true,
+    /** 990+ damage inverts the world for an instant, then flashes the screen white. */
+    val impactFrame: Boolean = true,
+    /** 100+ damage plays a heavier sound for each tier. Only you hear it. */
+    val sounds: Boolean = true,
 ) {
     fun serialize() = KEYS.joinToString("") { (key, get, _) -> "$key=${get(this)}\n" }
 
@@ -39,6 +59,16 @@ data class DamageNumberStyle(
             Key("combo", { it.combo }) { s, v -> s.copy(combo = v) },
             Key("countUp", { it.countUp }) { s, v -> s.copy(countUp = v) },
             Key("critMark", { it.critMark }) { s, v -> s.copy(critMark = v) },
+            Key("font", { it.font }) { s, v -> s.copy(font = v) },
+            Key("rings", { it.rings }) { s, v -> s.copy(rings = v) },
+            Key("slash", { it.slash }) { s, v -> s.copy(slash = v) },
+            Key("afterimages", { it.afterimages }) { s, v -> s.copy(afterimages = v) },
+            Key("rays", { it.rays }) { s, v -> s.copy(rays = v) },
+            Key("shatter", { it.shatter }) { s, v -> s.copy(shatter = v) },
+            Key("focusLines", { it.focusLines }) { s, v -> s.copy(focusLines = v) },
+            Key("rainbow", { it.rainbow }) { s, v -> s.copy(rainbow = v) },
+            Key("impactFrame", { it.impactFrame }) { s, v -> s.copy(impactFrame = v) },
+            Key("sounds", { it.sounds }) { s, v -> s.copy(sounds = v) },
         )
 
         fun parse(text: String): DamageNumberStyle {
