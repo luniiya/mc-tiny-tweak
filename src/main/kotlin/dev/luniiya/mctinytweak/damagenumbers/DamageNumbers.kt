@@ -271,14 +271,21 @@ object DamageNumbers {
     }
 
     /**
-     * How much of the way from the camera to a number, [distance] blocks away, to draw it instead. Moving it
+     * How much of the way from the camera to a number, [distance] blocks away, to draw it instead, pulling it
+     * [clearance] blocks closer. Moving it
      * along the line of sight keeps it on the same spot on screen, and scaling it by the same amount keeps its
      * size, but it ends up in front of fire and the mob. Close numbers move at most halfway.
      */
-    fun pull(distance: Double): Double {
+    fun pull(distance: Double, clearance: Double = PULL): Double {
         if (distance <= 0) return 1.0
-        return (distance - minOf(PULL, distance / 2)) / distance
+        return (distance - minOf(clearance, distance / 2)) / distance
     }
+
+    /**
+     * How far toward the camera to pull a number and its effects for a mob [width] blocks wide: at least
+     * [PULL], and more for fat mobs, so the number, glows and particles all land in front of its body.
+     */
+    fun clearance(width: Double): Double = maxOf(PULL, width * 1.2 + 0.3)
 
     /** True if a hit [sinceLastHit] ticks after the previous one on the same entity joins its combo. */
     fun continuesCombo(sinceLastHit: Int) = sinceLastHit <= COMBO_TICKS

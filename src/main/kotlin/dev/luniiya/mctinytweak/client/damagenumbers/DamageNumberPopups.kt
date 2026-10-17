@@ -63,6 +63,8 @@ object DamageNumberPopups {
         val z: Double,
         /** The middle of the mob, where slashes cut. */
         val centerY: Double,
+        /** Blocks to pull everything toward the camera so the mob's body cannot cover it. */
+        val clearance: Double,
         var damage: Float,
         var crit: Boolean,
         val killed: Boolean,
@@ -193,6 +195,7 @@ object DamageNumberPopups {
                 entity.y + entity.bbHeight + 0.2,
                 entity.z + (random.nextDouble() - 0.5) * entity.bbWidth,
                 entity.y + entity.bbHeight * 0.5,
+                DamageNumbers.clearance(entity.bbWidth.toDouble()),
                 damage,
                 crit,
                 killed,
@@ -288,7 +291,7 @@ object DamageNumberPopups {
     /** Sparks flying out from the number, only on this client. */
     private fun burst(level: ClientLevel, popup: Popup) {
         val count = if (popup.killed) 28 else DamageNumbers.sparks(popup.intensity, popup.crit)
-        sphere(level, popup.x, popup.y + 0.2, popup.z, count, 0.15, 0.2) {
+        sphere(level, popup.x, popup.y + 0.2, popup.z, popup.clearance, count, 0.15, 0.2) {
             when {
                 popup.killed -> if (it % 2 == 0) ParticleTypes.REVERSE_PORTAL else ParticleTypes.SQUID_INK
                 popup.crit -> ParticleTypes.CRIT
@@ -303,21 +306,33 @@ object DamageNumberPopups {
         if (popup.tier >= DamageVfx.BRUTAL) {
             val dust = DustParticleOptions(color, 1.6f)
             val gold = DustParticleOptions(HealthBars.GOLD and 0xFFFFFF, 1.2f)
-            sphere(level, popup.x, popup.centerY, popup.z, 40, 0.2, 0.25) { if (it % 3 == 0) gold else dust }
+            sphere(level, popup.x, popup.centerY, popup.z, popup.clearance, 40, 0.2, 0.25) { if (it % 3 == 0) gold else dust }
         }
         if (popup.tier >= DamageVfx.DEVASTATING) {
-            sphere(level, popup.x, popup.y + 0.2, popup.z, 30, 0.3, 0.3) { if (it % 2 == 0) ParticleTypes.END_ROD else ParticleTypes.ELECTRIC_SPARK }
+            sphere(level, popup.x, popup.y + 0.2, popup.z, popup.clearance, 30, 0.3, 0.3) { if (it % 2 == 0) ParticleTypes.END_ROD else ParticleTypes.ELECTRIC_SPARK }
         }
         if (popup.tier >= DamageVfx.MAX) {
-            sphere(level, popup.x, popup.y + 0.2, popup.z, 90, 0.4, 0.5) { ParticleTypes.TOTEM_OF_UNDYING }
+            sphere(level, popup.x, popup.y + 0.2, popup.z, popup.clearance, 90, 0.4, 0.5) { ParticleTypes.TOTEM_OF_UNDYING }
             val rainbow = DamageVfx.RAINBOW.map { DustParticleOptions(it and 0xFFFFFF, 2f) }
-            sphere(level, popup.x, popup.centerY, popup.z, 60, 0.3, 0.3) { rainbow[it % rainbow.size] }
+            sphere(level, popup.x, popup.centerY, popup.z, popup.clearance, 60, 0.3, 0.3) { rainbow[it % rainbow.size] }
         }
     }
 
-    /** [count] particles thrown out evenly over a sphere at [speed] plus up to [spread] more. */
-    private inline fun sphere(level: ClientLevel, x: Double, y: Double, z: Double, count: Int, speed: Double, spread: Double, type: (Int) -> ParticleOptions) {
+    /**
+     * [count] particles thrown out evenly over a sphere at [speed] plus up to [spread] more. The sphere starts
+     * [clearance] blocks toward the camera from the spot asked for, on the same spot on screen, so the mob's
+     * body does not hide it.
+     */
+    private inline fun sphere(level: ClientLevel, atX: Double, atY: Double, atZ: Double, clearance: Double, count: Int, speed: Double, spread: Double, type: (Int) -> ParticleOptions) {
         val random = level.random
+        val eye = Minecraft.getInstance().gameRenderer.mainCamera.position()
+        val rx = atX - eye.x
+        val ry = atY - eye.y
+        val rz = atZ - eye.z
+        val pull = DamageNumbers.pull(sqrt(rx * rx + ry * ry + rz * rz), clearance)
+        val x = eye.x + rx * pull
+        val y = eye.y + ry * pull
+        val z = eye.z + rz * pull
         repeat(count) {
             val vy = random.nextDouble() * 2 - 1
             val angle = random.nextDouble() * Math.PI * 2
@@ -353,13 +368,13 @@ object DamageNumberPopups {
             val big = popup.killed || DamageNumbers.isBig(intensity, popup.crit)
 
             if (style.slash && popup.tier >= DamageVfx.HEAVY) {
-                billboard(poseStack, camera, popup.x, popup.centerY, popup.z)
+                billboard(poseStack, camera, popup.x, popup.centerY, popup.z, popup.clearance)
                 slashes(queue, poseStack, popup, tierAge)
                 poseStack.popPose()
             }
 
             val size = DamageNumbers.scale(age, intensity, style.slam) * if (popup.killed) 1.4f else 1f
-            billboard(poseStack, camera, popup.x, popup.y + DamageNumbers.rise(age, popup.lifetime), popup.z)
+            billboard(poseStack, camera, popup.x, popup.y + DamageNumbers.rise(age, popup.lifetime), popup.z, popup.clearance)
             // Glows are centered on the digits and sit a little behind them so they never wash over them.
             poseStack.pushPose()
             poseStack.translate(0f, 4f * size, -1f)
@@ -398,14 +413,15 @@ object DamageNumberPopups {
 
     /**
      * Pushes a pose facing the camera at a world spot, in text pixels with y pointing down. The spot is pulled
-     * toward the camera, and shrunk to match, so flames and the mob's body cannot cover what is drawn there.
+     * [clearance] blocks toward the camera, and shrunk to match, so flames and the mob's body cannot cover
+     * what is drawn there.
      */
-    private fun billboard(poseStack: PoseStack, camera: net.minecraft.client.renderer.state.CameraRenderState, x: Double, y: Double, z: Double) {
+    private fun billboard(poseStack: PoseStack, camera: net.minecraft.client.renderer.state.CameraRenderState, x: Double, y: Double, z: Double, clearance: Double) {
         poseStack.pushPose()
         val rx = x - camera.pos.x
         val ry = y - camera.pos.y
         val rz = z - camera.pos.z
-        val pull = DamageNumbers.pull(sqrt(rx * rx + ry * ry + rz * rz))
+        val pull = DamageNumbers.pull(sqrt(rx * rx + ry * ry + rz * rz), clearance)
         poseStack.translate(rx * pull, ry * pull, rz * pull)
         poseStack.mulPose(camera.orientation)
         val scale = PIXEL * pull.toFloat()

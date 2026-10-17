@@ -154,6 +154,18 @@ class DamageNumbersTest {
     }
 
     @Test
+    fun `fat mobs pull numbers and effects further, so their body cannot cover them`() {
+        // A zombie is thin, so the usual pull is enough.
+        assertEquals(DamageNumbers.PULL, DamageNumbers.clearance(0.6), 1e-9)
+        // A sniffer is 1.9 wide: from anywhere over its body, the pull clears its near side.
+        val sniffer = DamageNumbers.clearance(1.9)
+        assertTrue(sniffer > 1.9 * Math.sqrt(2.0) / 2 + 1.0)
+        assertEquals(10 - sniffer, 10 * DamageNumbers.pull(10.0, sniffer), 1e-9)
+        // Up close it still stops halfway to the camera.
+        assertEquals(0.5, DamageNumbers.pull(3.0, sniffer), 1e-9)
+    }
+
+    @Test
     fun `crit marks and combos`() {
         assertEquals("7✦", DamageNumbers.label(7f, crit = true, critMark = true))
         assertEquals("7", DamageNumbers.label(7f, crit = true, critMark = false))
