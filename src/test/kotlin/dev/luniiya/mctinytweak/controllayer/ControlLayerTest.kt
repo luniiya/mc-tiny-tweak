@@ -3,6 +3,7 @@ package dev.luniiya.mctinytweak.controllayer
 import com.google.gson.JsonParser
 import dev.luniiya.mctinytweak.McTinyTweak
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.world.level.GameType
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.lwjgl.glfw.GLFW.*
@@ -15,6 +16,14 @@ class ControlLayerTest {
     fun `ctrl H heals and ctrl K kills, and both are hidden from the game`() {
         assertEquals(ControlLayer.Result(ControlLayer.Action.HEAL, true), layer.onKey(GLFW_KEY_H, GLFW_PRESS, true, false))
         assertEquals(ControlLayer.Result(ControlLayer.Action.KILL, true), layer.onKey(GLFW_KEY_K, GLFW_PRESS, true, false))
+    }
+
+    @Test
+    fun `ctrl G swaps between spectator and survival`() {
+        assertEquals(ControlLayer.Result(ControlLayer.Action.SPECTATOR, true), layer.onKey(GLFW_KEY_G, GLFW_PRESS, true, false))
+        assertEquals("gamemode spectator", ControlCommands.toggleSpectator(GameType.SURVIVAL))
+        assertEquals("gamemode spectator", ControlCommands.toggleSpectator(GameType.CREATIVE))
+        assertEquals("gamemode survival", ControlCommands.toggleSpectator(GameType.SPECTATOR))
     }
 
     @Test

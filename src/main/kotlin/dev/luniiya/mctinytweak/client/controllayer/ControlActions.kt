@@ -43,6 +43,8 @@ object ControlActions {
                 if (target == null) Notices.show(Component.translatable("notice.mc_tiny_tweak.control.no_target"))
                 else player.connection.sendCommand(ControlCommands.kill(target.stringUUID))
             }
+            ControlLayer.Action.SPECTATOR ->
+                player.connection.sendCommand(ControlCommands.toggleSpectator(minecraft.gameMode?.playerMode))
         }
     }
 

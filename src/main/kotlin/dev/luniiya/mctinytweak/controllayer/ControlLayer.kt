@@ -1,5 +1,6 @@
 package dev.luniiya.mctinytweak.controllayer
 
+import net.minecraft.world.level.GameType
 import org.lwjgl.glfw.GLFW
 
 /**
@@ -10,6 +11,7 @@ class ControlLayer {
     enum class Action(val key: Int, val id: String) {
         HEAL(GLFW.GLFW_KEY_H, "heal"),
         KILL(GLFW.GLFW_KEY_K, "kill"),
+        SPECTATOR(GLFW.GLFW_KEY_G, "spectator"),
     }
 
     /** What to do with one key event: maybe run an action, and whether to hide the event from the game. */
@@ -45,4 +47,8 @@ object ControlCommands {
     const val HEAL = "effect give @s minecraft:instant_health 1 $HEAL_LEVEL true"
 
     fun kill(uuid: String) = "kill $uuid"
+
+    /** Spectator goes back to survival; any other mode goes to spectator. */
+    fun toggleSpectator(current: GameType?) =
+        if (current == GameType.SPECTATOR) "gamemode survival" else "gamemode spectator"
 }
