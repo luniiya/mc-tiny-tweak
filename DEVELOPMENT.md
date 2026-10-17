@@ -148,6 +148,10 @@ On/off settings only accept true or false, since Baritone reads anything else as
 
 The burning overlay sits lower (`FireOverlay.EXTRA_DROP`) and shields held in first person render at 60% opacity (`ShieldOpacity.OPACITY`); tune either constant. Shields share the banner pattern code with banners, so `ShieldSpecialRendererMixin` flags a held shield while it submits and `BannerRendererMixin` only fades layers while that flag is set.
 
+## Damage numbers sounds
+
+The damage number sounds are synthesized, not recorded. `tools/damage_sounds.py` (Python with numpy, plus ffmpeg with libvorbis) writes every `.ogg` under `assets/mc_tiny_tweak/sounds/damage/`; tweak a sound there and run `python3 tools/damage_sounds.py` to regenerate them. `sounds.json` maps each `damage.<name>` event to its file and `DamageSounds` plays them on this client only.
+
 ## Tweaks and armor bar
 
 The mod menu has a Tweaks screen. Its settings are saved in `config/mc_tiny_tweak.properties` (`TweakSettings`). Show armor is off by default: players render without armor, and a thin gray experience-bar style bar above their name fills one of four segments per worn piece in the material's color (`ArmorBar` picks colors, `ArmorBarShape` lays out the rectangles).

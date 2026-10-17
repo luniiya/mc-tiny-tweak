@@ -27,9 +27,7 @@ import net.minecraft.network.chat.FontDescription
 import net.minecraft.network.chat.Style
 import net.minecraft.network.chat.TextColor
 import net.minecraft.resources.Identifier
-import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundEvents
-import net.minecraft.sounds.SoundSource
 import net.minecraft.util.FormattedCharSequence
 import net.minecraft.world.entity.LivingEntity
 import java.nio.file.Files
@@ -99,7 +97,6 @@ object DamageNumberPopups {
         ClientTickEvents.END_CLIENT_TICK.register(::tick)
         WorldRenderEvents.BEFORE_ENTITIES.register(::render)
         DamageImpact.register()
-        ComboHud.register()
     }
 
     fun load() {
@@ -152,10 +149,11 @@ object DamageNumberPopups {
         }
         val time = level.gameTime
         DamageImpact.tick(time)
+        WorldCombo.tick(time)
         popups.forEach {
             it.age++
             it.tierAge++
-            delayedSounds(level, it)
+            delayedSounds(it)
         }
         popups.removeIf { it.age >= it.lifetime }
 
@@ -171,7 +169,7 @@ object DamageNumberPopups {
             val crit = crits.take(entity.id, time)
             val killed = kills.take(entity.id, time)
             val attacker = attackers.of(entity.id, time)
-            if (attacker == player.id) ComboHud.hit(time, change)
+            if (attacker == player.id) WorldCombo.hit(time, change, entity)
             if (!DamageNumbers.shows(style.onlyMine, attacker, player.id)) continue
             hit(minecraft, level, entity, change, crit, killed)
         }
@@ -214,6 +212,9 @@ object DamageNumberPopups {
             while (popups.size > MAX_POPUPS) popups.removeFirst()
         }
         if (style.burst && burst && (popup.killed || DamageNumbers.isBig(popup.intensity, popup.crit))) burst(level, popup)
+        if (style.sounds && (crit || popup.killed) && inView(minecraft, popup)) {
+            if (popup.killed) DamageSounds.play(DamageSounds.NULL, 0.6f, 1f) else DamageSounds.play(DamageSounds.CRIT, 0.45f, 0.95f + 0.1f * level.random.nextFloat())
+        }
 
         // A combo climbing into a new tier sets off that tier's effects again.
         val tier = if (popup.killed) DamageVfx.NONE else DamageVfx.tier(popup.damage)
@@ -275,6 +276,9 @@ object DamageNumberPopups {
             popup.tier = maxOf(popup.tier, tier)
             popup.tierAge = 0
             if (style.burst) healParticles(level, popup, fresh = last == null)
+            if (style.sounds && inView(Minecraft.getInstance(), popup)) {
+                if (popup.damage >= DamageNumbers.BIG_HEAL) DamageSounds.play(DamageSounds.HEAL_BIG, 0.7f, 1f) else DamageSounds.play(DamageSounds.HEAL, 0.5f, 1f + 0.05f * popup.tier)
+            }
         }
         popup.lifetime = DamageVfx.lifetime(popup.tier)
     }
@@ -296,55 +300,40 @@ object DamageNumberPopups {
         val time = level.gameTime
         if (style.burst) tierParticles(level, popup)
         if (!popup.inView) return
-        if (style.sounds) tierSound(level, popup.tier)
+        if (style.sounds) {
+            tierSound(popup.tier)
+            if (style.slash) DamageSounds.play(DamageSounds.SLASH, 0.5f + 0.1f * popup.tier, 1.15f - 0.08f * popup.tier)
+            if (style.impactFrame && popup.tier >= DamageVfx.MAX) DamageSounds.play(DamageSounds.IMPACT, 1f, 1f)
+        }
         if (style.focusLines && popup.tier >= DamageVfx.DEVASTATING) DamageImpact.focus(time, popup.tier, popup.seed)
         if (style.impactFrame && popup.tier >= DamageVfx.MAX) DamageImpact.impact(time)
     }
 
-    /** Sounds only this player hears, played right at them so they hit hard wherever the mob is. */
-    private fun play(level: ClientLevel, sound: SoundEvent, volume: Float, pitch: Float) {
-        val player = Minecraft.getInstance().player ?: return
-        level.playLocalSound(player.x, player.eyeY, player.z, sound, SoundSource.PLAYERS, volume, pitch, false)
-    }
-
-    private fun tierSound(level: ClientLevel, tier: Int) {
+    /** Each tier's own boom, synthesized for the mod, with a quiet sonic boom under MAX for weight. */
+    private fun tierSound(tier: Int) {
         when (tier) {
-            DamageVfx.HEAVY -> {
-                play(level, SoundEvents.NOTE_BLOCK_BASEDRUM.value(), 1.2f, 0.5f)
-                play(level, SoundEvents.PLAYER_ATTACK_CRIT, 0.8f, 0.6f)
-            }
-            DamageVfx.BRUTAL -> {
-                play(level, SoundEvents.MACE_SMASH_GROUND_HEAVY, 0.9f, 0.9f)
-                play(level, SoundEvents.NOTE_BLOCK_BASEDRUM.value(), 1.2f, 0.5f)
-            }
-            DamageVfx.DEVASTATING -> {
-                play(level, SoundEvents.MACE_SMASH_GROUND_HEAVY, 1f, 0.7f)
-                play(level, SoundEvents.ZOMBIE_ATTACK_IRON_DOOR, 0.6f, 0.6f)
-                play(level, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, 0.9f, 0.7f)
-            }
+            DamageVfx.HEAVY -> DamageSounds.play(DamageSounds.HEAVY, 0.8f, 1f)
+            DamageVfx.BRUTAL -> DamageSounds.play(DamageSounds.BRUTAL, 0.9f, 1f)
+            DamageVfx.DEVASTATING -> DamageSounds.play(DamageSounds.DEVASTATING, 1f, 1f)
             DamageVfx.MAX -> {
-                play(level, SoundEvents.WARDEN_SONIC_BOOM, 1f, 0.8f)
-                play(level, SoundEvents.BELL_BLOCK, 1f, 0.5f)
-                play(level, SoundEvents.ANVIL_LAND, 0.5f, 0.5f)
-                play(level, SoundEvents.TRIDENT_THUNDER.value(), 0.5f, 1.4f)
+                DamageSounds.play(DamageSounds.MAX, 1f, 1f)
+                DamageSounds.play(SoundEvents.WARDEN_SONIC_BOOM, 0.3f, 0.8f)
             }
         }
     }
 
     /** The MAX tag's sparkle and the glass breaking when a number shatters, timed to the animation. */
-    private fun delayedSounds(level: ClientLevel, popup: Popup) {
+    private fun delayedSounds(popup: Popup) {
         if (!style.sounds || !popup.inView) return
         if (style.rainbow && popup.tier >= DamageVfx.MAX && !popup.maxTagPlayed && popup.tierAge >= DamageVfx.MAX_TAG_DELAY) {
             popup.maxTagPlayed = true
-            play(level, SoundEvents.FIREWORK_ROCKET_TWINKLE, 1f, 1.2f)
-            play(level, SoundEvents.TOTEM_USE, 0.35f, 1.6f)
+            DamageSounds.play(DamageSounds.MAX_TAG, 0.8f, 1f)
         }
         if (style.shatter && popup.tier >= DamageVfx.DEVASTATING && !popup.shatterPlayed &&
             DamageVfx.shatter(popup.age.toFloat(), popup.lifetime) > 0f
         ) {
             popup.shatterPlayed = true
-            play(level, SoundEvents.GLASS_BREAK, 1f, 0.8f)
-            play(level, SoundEvents.AMETHYST_CLUSTER_BREAK, 1f, 0.7f)
+            DamageSounds.play(DamageSounds.SHATTER, 0.8f, 1f)
         }
     }
 
@@ -408,13 +397,14 @@ object DamageNumberPopups {
         crits.clear()
         kills.clear()
         attackers.clear()
-        ComboHud.combo.clear()
+        WorldCombo.clear()
         DamageImpact.reset()
     }
 
     private fun render(context: WorldRenderContext) {
-        if (popups.isEmpty()) return
         val minecraft = Minecraft.getInstance()
+        val gameTime = minecraft.level?.gameTime ?: return
+        if (popups.isEmpty() && !WorldCombo.visible(gameTime)) return
         val font = minecraft.font
         val camera = context.worldState().cameraRenderState
         val partial = minecraft.deltaTracker.getGameTimeDeltaPartialTick(false)
@@ -474,6 +464,7 @@ object DamageNumberPopups {
             }
             poseStack.popPose()
         }
+        WorldCombo.render(font, queue, poseStack, camera, gameTime, partial)
     }
 
     /**
@@ -481,7 +472,7 @@ object DamageNumberPopups {
      * [clearance] blocks toward the camera, and shrunk to match, so flames and the mob's body cannot cover
      * what is drawn there.
      */
-    private fun billboard(poseStack: PoseStack, camera: net.minecraft.client.renderer.state.CameraRenderState, x: Double, y: Double, z: Double, clearance: Double) {
+    internal fun billboard(poseStack: PoseStack, camera: net.minecraft.client.renderer.state.CameraRenderState, x: Double, y: Double, z: Double, clearance: Double) {
         poseStack.pushPose()
         val rx = x - camera.pos.x
         val ry = y - camera.pos.y
@@ -659,7 +650,7 @@ object DamageNumberPopups {
     }
 
     /** A soft glowing band at [radius], brightest in the middle of its [width]. */
-    private fun ring(v: VertexConsumer, pose: PoseStack.Pose, radius: Float, width: Float, base: Int, alpha: Float) {
+    internal fun ring(v: VertexConsumer, pose: PoseStack.Pose, radius: Float, width: Float, base: Int, alpha: Float) {
         val mid = DamageNumbers.withAlpha(base, alpha)
         val clear = DamageNumbers.withAlpha(base, 0f)
         val segments = 48
@@ -771,12 +762,12 @@ object DamageNumberPopups {
     }
 
     /** Draws additive glowing triangles: no depth writes, colors adding up like light. */
-    private inline fun glow(queue: SubmitNodeCollector, poseStack: PoseStack, crossinline draw: (PoseStack.Pose, VertexConsumer) -> Unit) {
+    internal inline fun glow(queue: SubmitNodeCollector, poseStack: PoseStack, crossinline draw: (PoseStack.Pose, VertexConsumer) -> Unit) {
         queue.submitCustomGeometry(poseStack, RenderTypes.dragonRays()) { pose, consumer -> draw(pose, consumer) }
     }
 
     /** A long thin diamond from (ax, ay) to (bx, by), [half] wide in the middle. */
-    private fun diamond(v: VertexConsumer, pose: PoseStack.Pose, ax: Float, ay: Float, bx: Float, by: Float, half: Float, color: Int) {
+    internal fun diamond(v: VertexConsumer, pose: PoseStack.Pose, ax: Float, ay: Float, bx: Float, by: Float, half: Float, color: Int) {
         val dx = bx - ax
         val dy = by - ay
         val len = sqrt(dx * dx + dy * dy)
@@ -790,13 +781,13 @@ object DamageNumberPopups {
         tri(v, pose, bx, by, edge, mx + nx, my + ny, color, mx - nx, my - ny, color)
     }
 
-    private fun quad(v: VertexConsumer, pose: PoseStack.Pose, x1: Float, y1: Float, c1: Int, x2: Float, y2: Float, c2: Int, x3: Float, y3: Float, c3: Int, x4: Float, y4: Float, c4: Int) {
+    internal fun quad(v: VertexConsumer, pose: PoseStack.Pose, x1: Float, y1: Float, c1: Int, x2: Float, y2: Float, c2: Int, x3: Float, y3: Float, c3: Int, x4: Float, y4: Float, c4: Int) {
         tri(v, pose, x1, y1, c1, x2, y2, c2, x3, y3, c3)
         tri(v, pose, x1, y1, c1, x3, y3, c3, x4, y4, c4)
     }
 
     /** One triangle, sent both ways around so it shows whichever side faces the camera. */
-    private fun tri(v: VertexConsumer, pose: PoseStack.Pose, x1: Float, y1: Float, c1: Int, x2: Float, y2: Float, c2: Int, x3: Float, y3: Float, c3: Int) {
+    internal fun tri(v: VertexConsumer, pose: PoseStack.Pose, x1: Float, y1: Float, c1: Int, x2: Float, y2: Float, c2: Int, x3: Float, y3: Float, c3: Int) {
         v.addVertex(pose, x1, y1, 0f).setColor(c1)
         v.addVertex(pose, x2, y2, 0f).setColor(c2)
         v.addVertex(pose, x3, y3, 0f).setColor(c3)
