@@ -100,6 +100,12 @@ class ComboCounter {
         /** From this many hits the counter turns rainbow and sparkles. */
         const val RAINBOW = 100
 
+        /** How close to the mob's middle the counter's pieces start on each hit, against their spot. */
+        const val SPREAD_FROM = 0.55f
+
+        /** Ticks between each piece of the counter flying out. */
+        const val SPREAD_STAGGER = 0.6f
+
         /** Shards a milestone bursts. */
         const val SHARDS = 14
 
@@ -167,6 +173,16 @@ class ComboCounter {
             val out = (26f + (index * 7) % 18) * easeOutCubic(t)
             val fall = 24f * t * t
             return Triple(cos(angle) * out, sin(angle) * out + fall, 3.5f * (1f - t))
+        }
+
+        /**
+         * How far piece [order] of the counter has flown from the mob's middle to its spot around the mob after a
+         * hit: from [SPREAD_FROM] right after it, overshooting a little, then settling on 1. Later pieces leave a
+         * moment after the first, and once the combo breaks they all drift further out as they fade.
+         */
+        fun spread(sinceHit: Float, order: Int): Float {
+            val t = clamp((sinceHit - order * SPREAD_STAGGER) / POP_TICKS)
+            return (SPREAD_FROM + (1f - SPREAD_FROM) * easeOutBack(t)) * (1f + 0.5f * slide(sinceHit))
         }
 
         /** The new rank's size: slamming in from big with a bounce, then a little wobble. */

@@ -57,7 +57,7 @@
   "screen.mc_tiny_tweak.damage_numbers": "Damage Numbers",
   "screen.mc_tiny_tweak.damage_numbers.open": "Damage numbers...",
   "screen.mc_tiny_tweak.damage_numbers.combo_counter": "Combo counter",
-  "screen.mc_tiny_tweak.damage_numbers.combo_counter.tooltip": "Counts your hits in a row, floating next to the mob you are hitting, like 24 HITS in gacha games. It breaks after 2.5 seconds without a hit.",
+  "screen.mc_tiny_tweak.damage_numbers.combo_counter.tooltip": "Counts your hits in a row around the mob you are hitting, in its damage number color, like 24 HITS in gacha games. It breaks after 2.5 seconds without a hit.",
   "screen.mc_tiny_tweak.damage_numbers.heal_numbers": "Heal numbers",
   "screen.mc_tiny_tweak.damage_numbers.heal_numbers.tooltip": "Mobs healing show a green +number with hearts. Hidden while Only my hits is on.",
   "screen.mc_tiny_tweak.damage_numbers.only_mine": "Only my hits",

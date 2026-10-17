@@ -6,9 +6,11 @@ Needs numpy and ffmpeg with libvorbis. Writes Ogg Vorbis files to
 src/main/resources/assets/mc_tiny_tweak/sounds/damage/.
 """
 import os
+import sys
 import subprocess
 import tempfile
 import wave
+import zlib
 
 import numpy as np
 
@@ -248,10 +250,12 @@ def crit():
 
 
 def combo_tick():
-    d = 0.12
-    x = (np.sin(2 * np.pi * 1500 * t(d)) + 0.3 * np.sin(2 * np.pi * 3000 * t(d))) * decay(d, 0.03)
-    x = at(x, click(0.003, 4000) * 0.5, 0)
-    return finish(x, peak=0.5)
+    # A soft low drum thump, not a beep: it plays on every hit, so it has to stay out of the way.
+    d = 0.18
+    body = sweep(210, 120, d, 6) * decay(d, 0.045)
+    knock = lowpass(noise(d), 900) * decay(d, 0.012) * 0.35
+    x = saturate(body + knock, 1.5)
+    return finish(reverb(x, 0.3, 0.12, tone=3000), peak=0.55)
 
 
 def combo_milestone():
@@ -340,6 +344,10 @@ def write(name, samples):
 
 
 if __name__ == "__main__":
+    # Name sounds to remake only those, so the others stay exactly as they are.
+    names = sys.argv[1:] or list(SOUNDS)
     os.makedirs(OUT, exist_ok=True)
-    for name, make in SOUNDS.items():
-        write(name, make())
+    for name in names:
+        # Each sound gets its own noise, so changing one never shifts another's.
+        rng = np.random.default_rng(zlib.crc32(name.encode()))
+        write(name, SOUNDS[name]())

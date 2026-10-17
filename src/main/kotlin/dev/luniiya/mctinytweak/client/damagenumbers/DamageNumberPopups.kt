@@ -169,9 +169,9 @@ object DamageNumberPopups {
             val crit = crits.take(entity.id, time)
             val killed = kills.take(entity.id, time)
             val attacker = attackers.of(entity.id, time)
-            if (attacker == player.id) WorldCombo.hit(time, change, entity)
             if (!DamageNumbers.shows(style.onlyMine, attacker, player.id)) continue
-            hit(minecraft, level, entity, change, crit, killed)
+            val popup = hit(minecraft, level, entity, change, crit, killed)
+            if (attacker == player.id) WorldCombo.hit(time, change, entity, numberColor(popup), style.rainbow && popup.tier >= DamageVfx.MAX)
         }
         health.retain(seen)
         crits.prune(time)
@@ -179,7 +179,11 @@ object DamageNumberPopups {
         attackers.prune(time)
     }
 
-    private fun hit(minecraft: Minecraft, level: ClientLevel, entity: LivingEntity, damage: Float, crit: Boolean, killed: Boolean) {
+    /** The damage number's main color, which the combo counter matches: NULL's glitch red for kills. */
+    private fun numberColor(popup: Popup): Int =
+        if (popup.killed) DamageNumbers.GLITCH_RED else DamageNumbers.fill(DamageNumbers.color(popup.damage), popup.crit)
+
+    private fun hit(minecraft: Minecraft, level: ClientLevel, entity: LivingEntity, damage: Float, crit: Boolean, killed: Boolean): Popup {
         val combo = popups.lastOrNull { it.entityId == entity.id && !it.killed && !it.heal }
             ?.takeIf { !killed && style.combo && DamageNumbers.continuesCombo(it.age) }
         val popup: Popup
@@ -226,6 +230,7 @@ object DamageNumberPopups {
             tierUp(level, popup)
         }
         popup.lifetime = DamageVfx.lifetime(popup.tier)
+        return popup
     }
 
     /** True if the number's spot is on screen, so hits behind the player do not boom and flash at them. */
@@ -372,7 +377,7 @@ object DamageNumberPopups {
      * [clearance] blocks toward the camera from the spot asked for, on the same spot on screen, so the mob's
      * body does not hide it.
      */
-    private inline fun sphere(level: ClientLevel, atX: Double, atY: Double, atZ: Double, clearance: Double, count: Int, speed: Double, spread: Double, type: (Int) -> ParticleOptions) {
+    internal inline fun sphere(level: ClientLevel, atX: Double, atY: Double, atZ: Double, clearance: Double, count: Int, speed: Double, spread: Double, type: (Int) -> ParticleOptions) {
         val random = level.random
         val eye = Minecraft.getInstance().gameRenderer.mainCamera.position()
         val rx = atX - eye.x

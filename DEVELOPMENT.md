@@ -150,7 +150,7 @@ The burning overlay sits lower (`FireOverlay.EXTRA_DROP`) and shields held in fi
 
 ## Damage numbers sounds
 
-The damage number sounds are synthesized, not recorded. `tools/damage_sounds.py` (Python with numpy, plus ffmpeg with libvorbis) writes every `.ogg` under `assets/mc_tiny_tweak/sounds/damage/`; tweak a sound there and run `python3 tools/damage_sounds.py` to regenerate them. `sounds.json` maps each `damage.<name>` event to its file and `DamageSounds` plays them on this client only.
+The damage number sounds are synthesized, not recorded. `tools/damage_sounds.py` (Python with numpy, plus ffmpeg with libvorbis) writes every `.ogg` under `assets/mc_tiny_tweak/sounds/damage/`; tweak a sound there and run `python3 tools/damage_sounds.py <name>...` to regenerate just those (no names regenerates all). `sounds.json` maps each `damage.<name>` event to its file and `DamageSounds` plays them on this client only.
 
 ## Tweaks and armor bar
 

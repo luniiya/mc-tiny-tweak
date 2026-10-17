@@ -105,4 +105,17 @@ class ComboCounterTest {
         assertTrue(ComboCounter.rankScale(0f) > 2f)
         assertEquals(1f, ComboCounter.rankScale(ComboCounter.RANK_TICKS.toFloat()), 0.06f)
     }
+
+    @Test
+    fun `the counter's pieces burst out from the mob on each hit and settle around it`() {
+        assertEquals(ComboCounter.SPREAD_FROM, ComboCounter.spread(0f, 0), 1e-4f)
+        // Overshooting past their spot on the way out, then resting on it.
+        assertTrue(ComboCounter.spread(ComboCounter.POP_TICKS * 0.6f, 0) > 1f)
+        assertEquals(1f, ComboCounter.spread(ComboCounter.POP_TICKS.toFloat() + 2f, 0), 1e-4f)
+        // Later pieces leave a moment after.
+        assertTrue(ComboCounter.spread(1f, 2) < ComboCounter.spread(1f, 0))
+        // Drifting further out once the combo breaks.
+        val broken = ComboCounter.BREAK_TICKS + ComboCounter.FADE_TICKS.toFloat()
+        assertTrue(ComboCounter.spread(broken, 0) > 1.4f)
+    }
 }
