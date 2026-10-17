@@ -4,9 +4,12 @@ import dev.luniiya.mctinytweak.client.HiddenCommandFeedback
 import dev.luniiya.mctinytweak.client.Notices
 import dev.luniiya.mctinytweak.controllayer.ControlCommands
 import dev.luniiya.mctinytweak.controllayer.ControlLayer
+import dev.luniiya.mctinytweak.controllayer.ControlStep
 import net.minecraft.client.Minecraft
+import net.minecraft.client.player.LocalPlayer
 import net.minecraft.network.chat.Component
 import net.minecraft.server.permissions.Permissions
+import net.minecraft.world.effect.MobEffects
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.projectile.ProjectileUtil
 import net.minecraft.world.phys.HitResult
@@ -34,18 +37,21 @@ object ControlActions {
             return
         }
         when (action) {
-            ControlLayer.Action.HEAL -> {
-                HiddenCommandFeedback.hide(listOf("commands.effect.give.success.single"), 1)
-                player.connection.sendCommand(ControlCommands.HEAL)
-            }
+            ControlLayer.Action.HEAL -> send(player, ControlCommands.toggleHealing(player.hasEffect(MobEffects.INSTANT_HEALTH)))
             ControlLayer.Action.KILL -> {
                 val target = crosshairEntity(minecraft)
                 if (target == null) Notices.show(Component.translatable("notice.mc_tiny_tweak.control.no_target"))
-                else player.connection.sendCommand(ControlCommands.kill(target.stringUUID))
+                else send(player, ControlCommands.kill(target.stringUUID), target.displayName)
             }
-            ControlLayer.Action.SPECTATOR ->
-                player.connection.sendCommand(ControlCommands.toggleSpectator(minecraft.gameMode?.playerMode))
+            ControlLayer.Action.SPECTATOR -> send(player, ControlCommands.toggleSpectator(minecraft.gameMode?.playerMode))
         }
+    }
+
+    /** Sends the command and shows its notification instead of vanilla's success line. */
+    private fun send(player: LocalPlayer, step: ControlStep, vararg args: Any) {
+        HiddenCommandFeedback.hide(listOf(step.hiddenFeedback), 1)
+        player.connection.sendCommand(step.command)
+        Notices.show(Component.translatable("notice.mc_tiny_tweak.control.${step.notice}", *args))
     }
 
     /** The entity under the crosshair up to [KILL_RANGE], seen from the camera (so freecam aims too). */

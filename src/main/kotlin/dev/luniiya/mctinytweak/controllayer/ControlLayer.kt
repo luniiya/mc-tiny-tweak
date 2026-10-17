@@ -36,19 +36,26 @@ class ControlLayer {
     }
 }
 
-/** Vanilla OP commands the Ctrl layer sends, without the leading slash. */
+/**
+ * One shortcut run: the vanilla OP command (without the slash), the vanilla success line it hides,
+ * and the notification shown in its place.
+ */
+data class ControlStep(val command: String, val hiddenFeedback: String, val notice: String)
+
+/** Vanilla OP commands the Ctrl layer sends. */
 object ControlCommands {
     /**
-     * Instant Health heals 4 shl level, so level 28 is about a billion health: full HP even with boosted max health.
-     * It is also the highest level that works: 29 and up overflow, and vanilla clamps that to a heal of 0.
-     * `true` hides the particles.
+     * An infinite instant effect never runs out and heals 4 HP every tick (instant effects tick while they last),
+     * so you only die to a one-shot. Clearing the effect turns it off. `true` hides the particles.
      */
-    const val HEAL_LEVEL = 28
-    const val HEAL = "effect give @s minecraft:instant_health 1 $HEAL_LEVEL true"
+    fun toggleHealing(active: Boolean) =
+        if (active) ControlStep("effect clear @s minecraft:instant_health", "commands.effect.clear.specific.success.single", "healing.off")
+        else ControlStep("effect give @s minecraft:instant_health infinite 0 true", "commands.effect.give.success.single", "healing.on")
 
-    fun kill(uuid: String) = "kill $uuid"
+    fun kill(uuid: String) = ControlStep("kill $uuid", "commands.kill.success.single", "killed")
 
     /** Spectator goes back to survival; any other mode goes to spectator. */
     fun toggleSpectator(current: GameType?) =
-        if (current == GameType.SPECTATOR) "gamemode survival" else "gamemode spectator"
+        if (current == GameType.SPECTATOR) ControlStep("gamemode survival", "commands.gamemode.success.self", "survival")
+        else ControlStep("gamemode spectator", "commands.gamemode.success.self", "spectator")
 }

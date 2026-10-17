@@ -21,9 +21,10 @@ class ControlLayerTest {
     @Test
     fun `ctrl G swaps between spectator and survival`() {
         assertEquals(ControlLayer.Result(ControlLayer.Action.SPECTATOR, true), layer.onKey(GLFW_KEY_G, GLFW_PRESS, true, false))
-        assertEquals("gamemode spectator", ControlCommands.toggleSpectator(GameType.SURVIVAL))
-        assertEquals("gamemode spectator", ControlCommands.toggleSpectator(GameType.CREATIVE))
-        assertEquals("gamemode survival", ControlCommands.toggleSpectator(GameType.SPECTATOR))
+        assertEquals("gamemode spectator", ControlCommands.toggleSpectator(GameType.SURVIVAL).command)
+        assertEquals("gamemode spectator", ControlCommands.toggleSpectator(GameType.CREATIVE).command)
+        assertEquals("gamemode survival", ControlCommands.toggleSpectator(GameType.SPECTATOR).command)
+        assertEquals("spectator", ControlCommands.toggleSpectator(null).notice)
     }
 
     @Test
@@ -51,21 +52,27 @@ class ControlLayerTest {
     }
 
     @Test
-    fun `heal level gives a huge positive heal without overflowing`() {
-        val heal = 4 shl ControlCommands.HEAL_LEVEL
-        assertTrue(heal > 1_000_000_000, "heal $heal")
-        // 28 is the highest level that still heals; vanilla clamps the overflowed 29 to a heal of 0.
-        assertTrue(4 shl (ControlCommands.HEAL_LEVEL + 1) <= 0)
-        assertEquals("effect give @s minecraft:instant_health 1 28 true", ControlCommands.HEAL)
-        assertEquals("kill 0-0-0-0-1", ControlCommands.kill("0-0-0-0-1"))
+    fun `ctrl H turns infinite healing on, then clears it`() {
+        val on = ControlCommands.toggleHealing(active = false)
+        assertEquals("effect give @s minecraft:instant_health infinite 0 true", on.command)
+        assertEquals("healing.on", on.notice)
+        val off = ControlCommands.toggleHealing(active = true)
+        assertEquals("effect clear @s minecraft:instant_health", off.command)
+        assertEquals("healing.off", off.notice)
+        assertEquals("kill 0-0-0-0-1", ControlCommands.kill("0-0-0-0-1").command)
     }
 
     @Test
-    fun `keyboard hook is applied and notices have text`() {
+    fun `keyboard hook is applied and every shortcut has a notification`() {
         val handler = Class.forName("net.minecraft.client.KeyboardHandler", false, javaClass.classLoader)
         assertTrue(handler.declaredMethods.any { "controlLayer" in it.name })
         val container = FabricLoader.getInstance().getModContainer(McTinyTweak.MOD_ID).orElseThrow()
         val lang = Files.newBufferedReader(container.findPath("assets/mc_tiny_tweak/lang/en_us.json").orElseThrow()).use { JsonParser.parseReader(it).asJsonObject }
-        for (key in listOf("needs_op", "no_target")) assertTrue(lang.has("notice.mc_tiny_tweak.control.$key"), key)
+        val steps = listOf(true, false).map(ControlCommands::toggleHealing) +
+            listOf(GameType.SURVIVAL, GameType.SPECTATOR).map(ControlCommands::toggleSpectator) + ControlCommands.kill("x")
+        for (key in listOf("needs_op", "no_target") + steps.map { it.notice }) assertTrue(lang.has("notice.mc_tiny_tweak.control.$key"), key)
+        // Each command hides its own vanilla success line, which must be a real vanilla message.
+        val vanilla = net.minecraft.locale.Language.getInstance()
+        for (step in steps) assertTrue(vanilla.has(step.hiddenFeedback), step.hiddenFeedback)
     }
 }
