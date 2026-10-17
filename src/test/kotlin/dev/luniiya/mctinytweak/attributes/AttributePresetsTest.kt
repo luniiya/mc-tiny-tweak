@@ -45,6 +45,7 @@ class AttributePresetsTest {
         assertEquals(setOf("boosted", "default smol", "god"), bundled.keys)
         assertEquals(0.85, bundled.getValue("default smol")["minecraft:scale"])
         assertEquals(1024.0, bundled.getValue("god")["minecraft:max_health"])
+        assertEquals(160.0, bundled.getValue("boosted")["minecraft:max_health"])
     }
 
     @Test
