@@ -49,13 +49,15 @@ object DamageNumbers {
     /** From this intensity a hit counts as huge and gets the gradient. */
     const val HUGE = 0.8f
 
+    /** Blocks a number is pulled toward the camera, enough to clear burning flames around the mob. */
+    const val PULL = 1.5
+
     /** Drops smaller than this are rounding noise. */
     private const val MIN_DAMAGE = 0.05f
 
     const val WHITE = 0xFFFFFFFF.toInt()
 
-    /** Crits are gold like golden hearts. */
-    const val CRIT = HealthBars.GOLD
+    const val BLACK = 0xFF000000.toInt()
 
     /** Hits under this use the first heart color; each color after that is for twice as much damage. */
     const val FIRST_TIER = 5f
@@ -126,8 +128,14 @@ object DamageNumbers {
     /** Which heart color a hit gets: 0 under [FIRST_TIER], then one more for every doubling. */
     fun tier(damage: Float): Int = if (damage < FIRST_TIER) 0 else floor(log2(damage / FIRST_TIER)).toInt() + 1
 
-    /** The health bar's layer colors by [tier], so bigger hits climb the same palette. Crits are gold. */
-    fun color(damage: Float, crit: Boolean): Int = if (crit) CRIT else HealthBars.layerColor(tier(damage))
+    /** The health bar's layer colors by [tier], so bigger hits climb the same palette. */
+    fun color(damage: Float): Int = HealthBars.layerColor(tier(damage))
+
+    /** The digits' color. Crits flip the brightness: a dark fill instead of a bright one. */
+    fun fill(color: Int, crit: Boolean): Int = if (crit) mix(BLACK, color, 0.3f) else color
+
+    /** The outline's color: dark around normal hits, bright around crits. */
+    fun outline(color: Int, crit: Boolean): Int = if (crit) mix(color, WHITE, 0.45f) else mix(BLACK, color, 0.25f)
 
     /** How hard a hit feels, from 0 for 4 damage or less to 1 for 32 or more. Crits count a bit harder. */
     fun intensity(damage: Float, crit: Boolean): Float {
@@ -168,10 +176,9 @@ object DamageNumbers {
      * The color of the digit at [index] for gradient numbers: the hit's color, the next heart color and gold,
      * flowing across the digits over time.
      */
-    fun gradientColor(damage: Float, crit: Boolean, index: Int, age: Float): Int {
-        val own = color(damage, crit)
-        val next = if (crit) HealthBars.layerColor(tier(damage)) else HealthBars.layerColor(tier(damage) + 1)
-        val stops = intArrayOf(own, next, CRIT, next)
+    fun gradientColor(damage: Float, index: Int, age: Float): Int {
+        val next = HealthBars.layerColor(tier(damage) + 1)
+        val stops = intArrayOf(color(damage), next, HealthBars.GOLD, next)
         val phase = index * 0.3f + age * 0.15f
         val i = floor(phase).toInt()
         return mix(stops[Math.floorMod(i, stops.size)], stops[Math.floorMod(i + 1, stops.size)], phase - i)
@@ -213,6 +220,16 @@ object DamageNumbers {
     fun rise(age: Float): Float {
         val t = clamp(age / LIFETIME)
         return 0.8f * (1f - (1f - t) * (1f - t))
+    }
+
+    /**
+     * How much of the way from the camera to a number, [distance] blocks away, to draw it instead. Moving it
+     * along the line of sight keeps it on the same spot on screen, and scaling it by the same amount keeps its
+     * size, but it ends up in front of fire and the mob. Close numbers move at most halfway.
+     */
+    fun pull(distance: Double): Double {
+        if (distance <= 0) return 1.0
+        return (distance - minOf(PULL, distance / 2)) / distance
     }
 
     /** True if a hit [sinceLastHit] ticks after the previous one on the same entity joins its combo. */

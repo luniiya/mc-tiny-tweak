@@ -17,7 +17,6 @@ import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Style
 import net.minecraft.network.chat.TextColor
-import net.minecraft.util.ARGB
 import net.minecraft.util.FormattedCharSequence
 import net.minecraft.world.entity.LivingEntity
 import java.nio.file.Files
@@ -187,9 +186,14 @@ object DamageNumberPopups {
             val big = popup.killed || DamageNumbers.isBig(intensity, popup.crit)
 
             poseStack.pushPose()
-            poseStack.translate(popup.x - camera.pos.x, popup.y + DamageNumbers.rise(age) - camera.pos.y, popup.z - camera.pos.z)
+            val rx = popup.x - camera.pos.x
+            val ry = popup.y + DamageNumbers.rise(age) - camera.pos.y
+            val rz = popup.z - camera.pos.z
+            // Pulled toward the camera, and shrunk to match, so flames and the mob's body cannot cover it.
+            val pull = DamageNumbers.pull(sqrt(rx * rx + ry * ry + rz * rz))
+            poseStack.translate(rx * pull, ry * pull, rz * pull)
             poseStack.mulPose(camera.orientation)
-            val scale = 0.025f * DamageNumbers.scale(age, intensity, style.slam) * if (popup.killed) 1.4f else 1f
+            val scale = 0.025f * pull.toFloat() * DamageNumbers.scale(age, intensity, style.slam) * if (popup.killed) 1.4f else 1f
             poseStack.scale(scale, -scale, scale)
 
             var dx = 0f
@@ -203,7 +207,7 @@ object DamageNumberPopups {
             } else {
                 val text = number(popup, age, big)
                 val x = -font.width(text) / 2f + dx
-                val outline = DamageNumbers.withAlpha(ARGB.scaleRGB(DamageNumbers.color(popup.damage, popup.crit), 0.25f), alpha)
+                val outline = DamageNumbers.withAlpha(DamageNumbers.outline(DamageNumbers.color(popup.damage), popup.crit), alpha)
                 queue.submitText(poseStack, x, dy, text, false, Font.DisplayMode.NORMAL, LightTexture.FULL_BRIGHT, DamageNumbers.withAlpha(DamageNumbers.WHITE, alpha), 0, outline)
             }
             poseStack.popPose()
@@ -218,7 +222,8 @@ object DamageNumberPopups {
         val flash = if (style.flash && big) DamageNumbers.flash(age) else 0f
         val text = Component.empty()
         label.forEachIndexed { i, c ->
-            var color = if (gradient) DamageNumbers.gradientColor(popup.damage, popup.crit, i, age) else DamageNumbers.color(popup.damage, popup.crit)
+            val base = if (gradient) DamageNumbers.gradientColor(popup.damage, i, age) else DamageNumbers.color(popup.damage)
+            var color = DamageNumbers.fill(base, popup.crit)
             if (flash > 0f) color = DamageNumbers.mix(color, DamageNumbers.WHITE, flash)
             text.append(Component.literal(c.toString()).withStyle(Style.EMPTY.withBold(true).withColor(TextColor.fromRgb(color and 0xFFFFFF))))
         }

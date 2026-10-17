@@ -10,7 +10,7 @@ data class DamageNumberStyle(
     val shake: Boolean = true,
     /** Big hits and crits burst sparks around the number. */
     val burst: Boolean = true,
-    /** Huge hits and crits cycle a red, orange and gold gradient across their digits. */
+    /** Huge hits and crits flow their heart color, the next one and gold across their digits. */
     val gradient: Boolean = true,
     /** Quick hits on the same entity add up into one growing number. */
     val combo: Boolean = true,

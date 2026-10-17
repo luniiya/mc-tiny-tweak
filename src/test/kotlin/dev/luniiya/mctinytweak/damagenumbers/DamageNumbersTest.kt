@@ -66,17 +66,27 @@ class DamageNumbersTest {
     }
 
     @Test
-    fun `hits climb the heart colors, one color per doubling, and crits are gold`() {
+    fun `hits climb the heart colors, one color per doubling`() {
         assertEquals(0, DamageNumbers.tier(4.9f))
         assertEquals(1, DamageNumbers.tier(5f))
         assertEquals(1, DamageNumbers.tier(9.9f))
         assertEquals(2, DamageNumbers.tier(10f))
         assertEquals(4, DamageNumbers.tier(40f))
-        assertEquals(HealthBars.layerColor(0), DamageNumbers.color(2f, false))
-        assertEquals(HealthBars.layerColor(3), DamageNumbers.color(25f, false))
+        assertEquals(HealthBars.layerColor(0), DamageNumbers.color(2f))
+        assertEquals(HealthBars.layerColor(3), DamageNumbers.color(25f))
         // Past the last color the palette loops back to red, like the health bar.
-        assertEquals(HealthBars.layerColor(1), DamageNumbers.color(5f * 128, false))
-        assertEquals(HealthBars.GOLD, DamageNumbers.color(2f, true))
+        assertEquals(HealthBars.layerColor(1), DamageNumbers.color(5f * 128))
+    }
+
+    @Test
+    fun `crits flip the brightness, a dark fill with a bright outline`() {
+        val color = DamageNumbers.color(25f)
+        fun brightness(c: Int) = ((c shr 16) and 0xFF) + ((c shr 8) and 0xFF) + (c and 0xFF)
+        assertEquals(color, DamageNumbers.fill(color, crit = false))
+        assertTrue(brightness(DamageNumbers.outline(color, crit = false)) < brightness(color))
+        assertTrue(brightness(DamageNumbers.fill(color, crit = true)) < brightness(color))
+        assertTrue(brightness(DamageNumbers.outline(color, crit = true)) > brightness(color))
+        assertTrue(brightness(DamageNumbers.outline(color, crit = true)) > brightness(DamageNumbers.fill(color, crit = true)))
     }
 
     @Test
@@ -124,11 +134,20 @@ class DamageNumbersTest {
 
     @Test
     fun `gradient flows between the hit's color, the next heart color and gold`() {
-        val own = DamageNumbers.color(30f, false)
-        assertEquals(own, DamageNumbers.gradientColor(30f, false, 0, 0f))
-        assertNotEquals(DamageNumbers.gradientColor(30f, false, 0, 0f), DamageNumbers.gradientColor(30f, false, 2, 0f))
-        assertNotEquals(DamageNumbers.gradientColor(30f, false, 0, 0f), DamageNumbers.gradientColor(30f, false, 0, 5f))
+        val own = DamageNumbers.color(30f)
+        assertEquals(own, DamageNumbers.gradientColor(30f, 0, 0f))
+        assertNotEquals(DamageNumbers.gradientColor(30f, 0, 0f), DamageNumbers.gradientColor(30f, 2, 0f))
+        assertNotEquals(DamageNumbers.gradientColor(30f, 0, 0f), DamageNumbers.gradientColor(30f, 0, 5f))
         assertEquals(0xFF808080.toInt(), DamageNumbers.mix(0xFF000000.toInt(), 0xFFFFFFFF.toInt(), 0.5f))
+    }
+
+    @Test
+    fun `numbers are pulled toward the camera to stay in front of flames`() {
+        // 10 blocks away it is drawn 1.5 blocks closer.
+        assertEquals(8.5, 10 * DamageNumbers.pull(10.0), 1e-9)
+        // Close up it only moves halfway, never past the camera.
+        assertEquals(0.5, DamageNumbers.pull(1.0), 1e-9)
+        assertEquals(1.0, DamageNumbers.pull(0.0), 1e-9)
     }
 
     @Test
