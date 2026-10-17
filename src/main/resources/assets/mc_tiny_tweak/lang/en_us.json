@@ -106,6 +106,8 @@
   "screen.mc_tiny_tweak.server_stats.local": "Ping: singleplayer",
   "notice.mc_tiny_tweak.fullbright.on": "Fullbright on",
   "notice.mc_tiny_tweak.fullbright.off": "Fullbright off",
+  "notice.mc_tiny_tweak.control.needs_op": "Ctrl shortcuts need OP",
+  "notice.mc_tiny_tweak.control.no_target": "No entity under your crosshair",
   "notice.mc_tiny_tweak.attributes.loaded": "Attribute preset %s loaded",
   "notice.mc_tiny_tweak.attributes.already_loaded": "Attribute preset %s already loaded",
   "notice.mc_tiny_tweak.attributes.already_custom": "Your own attribute edits are already loaded",
