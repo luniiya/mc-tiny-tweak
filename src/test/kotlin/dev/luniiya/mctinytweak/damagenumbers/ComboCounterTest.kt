@@ -107,15 +107,22 @@ class ComboCounterTest {
     }
 
     @Test
-    fun `the counter's pieces burst out from the mob on each hit and settle around it`() {
+    fun `combo popups burst out from the mob and settle on their spot`() {
         assertEquals(ComboCounter.SPREAD_FROM, ComboCounter.spread(0f, 0), 1e-4f)
         // Overshooting past their spot on the way out, then resting on it.
         assertTrue(ComboCounter.spread(ComboCounter.POP_TICKS * 0.6f, 0) > 1f)
         assertEquals(1f, ComboCounter.spread(ComboCounter.POP_TICKS.toFloat() + 2f, 0), 1e-4f)
-        // Later pieces leave a moment after.
+        // Later popups of the same hit leave a moment after.
         assertTrue(ComboCounter.spread(1f, 2) < ComboCounter.spread(1f, 0))
-        // Drifting further out once the combo breaks.
-        val broken = ComboCounter.BREAK_TICKS + ComboCounter.FADE_TICKS.toFloat()
-        assertTrue(ComboCounter.spread(broken, 0) > 1.4f)
+    }
+
+    @Test
+    fun `count popups spawn on either side of the mob, never above or below it`() {
+        val spots = (0 until 200).map { ComboCounter.around(ComboCounter.sideAngle(it / 200f)) }
+        assertTrue(spots.any { it.first > 0.5f } && spots.any { it.first < -0.5f })
+        // Above is where the damage number rises, so they keep clear of straight up and down.
+        val maxUp = kotlin.math.sin(ComboCounter.SIDE_SPREAD) + 1e-4f
+        assertTrue(spots.all { kotlin.math.abs(it.second) <= maxUp })
+        assertTrue(spots.all { kotlin.math.abs(it.first) >= kotlin.math.cos(ComboCounter.SIDE_SPREAD) - 1e-4f })
     }
 }

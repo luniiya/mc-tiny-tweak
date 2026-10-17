@@ -100,11 +100,14 @@ class ComboCounter {
         /** From this many hits the counter turns rainbow and sparkles. */
         const val RAINBOW = 100
 
-        /** How close to the mob's middle the counter's pieces start on each hit, against their spot. */
+        /** How close to the mob's middle combo popups start, against their spot. */
         const val SPREAD_FROM = 0.55f
 
-        /** Ticks between each piece of the counter flying out. */
+        /** Ticks between each popup of the same hit flying out. */
         const val SPREAD_STAGGER = 0.6f
+
+        /** How far, in radians, a count popup strays up or down from straight out to the side. */
+        const val SIDE_SPREAD = 0.9f
 
         /** Shards a milestone bursts. */
         const val SHARDS = 14
@@ -176,14 +179,28 @@ class ComboCounter {
         }
 
         /**
-         * How far piece [order] of the counter has flown from the mob's middle to its spot around the mob after a
-         * hit: from [SPREAD_FROM] right after it, overshooting a little, then settling on 1. Later pieces leave a
-         * moment after the first, and once the combo breaks they all drift further out as they fade.
+         * How far a popup has flown from the mob's middle out to its spot after spawning: from [SPREAD_FROM],
+         * overshooting a little, then settling on 1. [order] makes later popups of the same hit leave a moment
+         * after the first.
          */
-        fun spread(sinceHit: Float, order: Int): Float {
-            val t = clamp((sinceHit - order * SPREAD_STAGGER) / POP_TICKS)
-            return (SPREAD_FROM + (1f - SPREAD_FROM) * easeOutBack(t)) * (1f + 0.5f * slide(sinceHit))
+        fun spread(age: Float, order: Int): Float {
+            val t = clamp((age - order * SPREAD_STAGGER) / POP_TICKS)
+            return SPREAD_FROM + (1f - SPREAD_FROM) * easeOutBack(t)
         }
+
+        /**
+         * The angle, around the mob as the camera sees it, where a hit's count popup spawns from a [random]
+         * value in 0 to 1: anywhere on its left or right side, never right above where the damage number sits
+         * or below. The DMG total spawns across from it.
+         */
+        fun sideAngle(random: Float): Float {
+            val side = if (random < 0.5f) 0f else PI.toFloat()
+            val within = (random * 2f) % 1f
+            return side + (within - 0.5f) * 2f * SIDE_SPREAD
+        }
+
+        /** A spot on the oval around the mob at [angle], as sideways and up, 1 being its edge. */
+        fun around(angle: Float): Pair<Float, Float> = cos(angle) to sin(angle)
 
         /** The new rank's size: slamming in from big with a bounce, then a little wobble. */
         fun rankScale(sinceRank: Float): Float {

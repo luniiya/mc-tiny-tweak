@@ -409,7 +409,7 @@ object DamageNumberPopups {
     private fun render(context: WorldRenderContext) {
         val minecraft = Minecraft.getInstance()
         val gameTime = minecraft.level?.gameTime ?: return
-        if (popups.isEmpty() && !WorldCombo.visible(gameTime)) return
+        if (popups.isEmpty() && !WorldCombo.visible()) return
         val font = minecraft.font
         val camera = context.worldState().cameraRenderState
         val partial = minecraft.deltaTracker.getGameTimeDeltaPartialTick(false)

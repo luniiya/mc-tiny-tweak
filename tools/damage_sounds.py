@@ -249,15 +249,6 @@ def crit():
 # --- Combo counter ------------------------------------------------------------------------------------
 
 
-def combo_tick():
-    # A soft low drum thump, not a beep: it plays on every hit, so it has to stay out of the way.
-    d = 0.18
-    body = sweep(210, 120, d, 6) * decay(d, 0.045)
-    knock = lowpass(noise(d), 900) * decay(d, 0.012) * 0.35
-    x = saturate(body + knock, 1.5)
-    return finish(reverb(x, 0.3, 0.12, tone=3000), peak=0.55)
-
-
 def combo_milestone():
     d = 0.1
     x = silence(d)
@@ -319,7 +310,6 @@ SOUNDS = {
     "max_tag": max_tag,
     "null": glitch,
     "crit": crit,
-    "combo_tick": combo_tick,
     "combo_milestone": combo_milestone,
     "combo_rank": combo_rank,
     "combo_break": combo_break,

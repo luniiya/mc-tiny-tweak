@@ -49,11 +49,6 @@
       "mc_tiny_tweak:damage/crit"
     ]
   },
-  "damage.combo_tick": {
-    "sounds": [
-      "mc_tiny_tweak:damage/combo_tick"
-    ]
-  },
   "damage.combo_milestone": {
     "sounds": [
       "mc_tiny_tweak:damage/combo_milestone"

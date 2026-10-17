@@ -21,7 +21,6 @@ object DamageSounds {
     val MAX_TAG = event("max_tag")
     val NULL = event("null")
     val CRIT = event("crit")
-    val COMBO_TICK = event("combo_tick")
     val COMBO_MILESTONE = event("combo_milestone")
     val COMBO_RANK = event("combo_rank")
     val COMBO_BREAK = event("combo_break")
