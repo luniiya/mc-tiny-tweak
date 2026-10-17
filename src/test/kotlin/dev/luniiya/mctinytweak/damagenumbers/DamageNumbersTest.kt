@@ -1,5 +1,6 @@
 package dev.luniiya.mctinytweak.damagenumbers
 
+import dev.luniiya.mctinytweak.healthbar.HealthBars
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -36,20 +37,20 @@ class DamageNumbersTest {
 
     @Test
     fun `a crit counts only right after its animation and only once`() {
-        val crits = DamageNumbers.Crits()
+        val crits = DamageNumbers.Marks()
         crits.mark(7, 100)
         assertFalse(crits.take(8, 100))
         assertTrue(crits.take(7, 101))
         assertFalse(crits.take(7, 101))
         crits.mark(7, 100)
-        assertFalse(crits.take(7, 100 + DamageNumbers.CRIT_WINDOW + 1L))
+        assertFalse(crits.take(7, 100 + DamageNumbers.MARK_WINDOW + 1L))
     }
 
     @Test
     fun `old crits are pruned`() {
-        val crits = DamageNumbers.Crits()
+        val crits = DamageNumbers.Marks()
         crits.mark(1, 10)
-        crits.prune(10 + DamageNumbers.CRIT_WINDOW + 1L)
+        crits.prune(10 + DamageNumbers.MARK_WINDOW + 1L)
         assertFalse(crits.take(1, 10))
     }
 
@@ -65,23 +66,89 @@ class DamageNumbersTest {
     }
 
     @Test
-    fun `bigger hits get warmer colors and crits are gold`() {
-        assertEquals(DamageNumbers.WHITE, DamageNumbers.color(2f, false))
-        assertEquals(DamageNumbers.YELLOW, DamageNumbers.color(4f, false))
-        assertEquals(DamageNumbers.ORANGE, DamageNumbers.color(10f, false))
-        assertEquals(DamageNumbers.RED, DamageNumbers.color(50f, false))
-        assertEquals(DamageNumbers.CRIT, DamageNumbers.color(2f, true))
+    fun `hits climb the heart colors, one color per doubling, and crits are gold`() {
+        assertEquals(0, DamageNumbers.tier(4.9f))
+        assertEquals(1, DamageNumbers.tier(5f))
+        assertEquals(1, DamageNumbers.tier(9.9f))
+        assertEquals(2, DamageNumbers.tier(10f))
+        assertEquals(4, DamageNumbers.tier(40f))
+        assertEquals(HealthBars.layerColor(0), DamageNumbers.color(2f, false))
+        assertEquals(HealthBars.layerColor(3), DamageNumbers.color(25f, false))
+        // Past the last color the palette loops back to red, like the health bar.
+        assertEquals(HealthBars.layerColor(1), DamageNumbers.color(5f * 128, false))
+        assertEquals(HealthBars.GOLD, DamageNumbers.color(2f, true))
     }
 
     @Test
-    fun `numbers pop in, settle, rise and fade out`() {
-        assertTrue(DamageNumbers.scale(0f, false) > 1.5f)
-        assertEquals(1f, DamageNumbers.scale(DamageNumbers.POP_TICKS.toFloat(), false), 1e-4f)
-        assertTrue(DamageNumbers.scale(10f, true) > DamageNumbers.scale(10f, false))
+    fun `intensity grows with damage, crits hit harder, and it decides big and huge`() {
+        assertEquals(0f, DamageNumbers.intensity(4f, false), 1e-4f)
+        assertEquals(1f, DamageNumbers.intensity(32f, false), 1e-4f)
+        assertEquals(1f, DamageNumbers.intensity(5000f, false), 1e-4f)
+        assertTrue(DamageNumbers.intensity(6f, true) > DamageNumbers.intensity(6f, false))
+        assertFalse(DamageNumbers.isBig(DamageNumbers.intensity(6f, false), false))
+        assertTrue(DamageNumbers.isBig(DamageNumbers.intensity(12f, false), false))
+        assertTrue(DamageNumbers.isBig(0f, true))
+        assertFalse(DamageNumbers.isHuge(DamageNumbers.intensity(12f, false), false))
+        assertTrue(DamageNumbers.isHuge(DamageNumbers.intensity(30f, false), false))
+    }
+
+    @Test
+    fun `slam starts big, bounces past its size and settles`() {
+        val hard = 1f
+        val peak = DamageNumbers.scale(0f, hard, slam = true)
+        val settled = DamageNumbers.scale(DamageNumbers.SLAM_TICKS.toFloat(), hard, slam = true)
+        assertTrue(peak > 3f * settled / 1.6f)
+        val dip = (1..DamageNumbers.SLAM_TICKS * 4).minOf { DamageNumbers.scale(it / 4f, hard, slam = true) }
+        assertTrue(dip < settled)
+        assertEquals(settled, DamageNumbers.scale(20f, hard, slam = true), 1e-4f)
+        // Harder hits stay bigger, and without slam they only pop a little.
+        assertTrue(settled > DamageNumbers.scale(20f, 0f, slam = true))
+        assertTrue(DamageNumbers.scale(0f, hard, slam = false) < peak)
+    }
+
+    @Test
+    fun `numbers flash, shake, count up, rise and fade out`() {
+        assertEquals(1f, DamageNumbers.flash(0f), 1e-4f)
+        assertEquals(0f, DamageNumbers.flash(DamageNumbers.FLASH_TICKS.toFloat()), 1e-4f)
+        assertEquals(0f, DamageNumbers.shakeX(DamageNumbers.SHAKE_TICKS.toFloat(), 1f, 3f), 1e-4f)
+        assertTrue((1..6).any { kotlin.math.abs(DamageNumbers.shakeX(it / 2f, 1f, 3f)) > 1f })
+        assertEquals(0f, DamageNumbers.countUp(50f, 0f), 1e-4f)
+        assertTrue(DamageNumbers.countUp(50f, 2f) in 1f..50f)
+        assertEquals(50f, DamageNumbers.countUp(50f, DamageNumbers.COUNT_TICKS.toFloat()), 1e-4f)
         assertEquals(1f, DamageNumbers.alpha(0f), 1e-4f)
         assertEquals(0f, DamageNumbers.alpha(DamageNumbers.LIFETIME.toFloat()), 1e-4f)
         assertEquals(0f, DamageNumbers.rise(0f), 1e-4f)
         assertTrue(DamageNumbers.rise(12f) < DamageNumbers.rise(24f))
         assertEquals(0x80FF0000.toInt(), DamageNumbers.withAlpha(0xFFFF0000.toInt(), 128 / 255f))
+    }
+
+    @Test
+    fun `gradient flows between the hit's color, the next heart color and gold`() {
+        val own = DamageNumbers.color(30f, false)
+        assertEquals(own, DamageNumbers.gradientColor(30f, false, 0, 0f))
+        assertNotEquals(DamageNumbers.gradientColor(30f, false, 0, 0f), DamageNumbers.gradientColor(30f, false, 2, 0f))
+        assertNotEquals(DamageNumbers.gradientColor(30f, false, 0, 0f), DamageNumbers.gradientColor(30f, false, 0, 5f))
+        assertEquals(0xFF808080.toInt(), DamageNumbers.mix(0xFF000000.toInt(), 0xFFFFFFFF.toInt(), 0.5f))
+    }
+
+    @Test
+    fun `crit marks and combos`() {
+        assertEquals("7✦", DamageNumbers.label(7f, crit = true, critMark = true))
+        assertEquals("7", DamageNumbers.label(7f, crit = true, critMark = false))
+        assertEquals("7", DamageNumbers.label(7f, crit = false, critMark = true))
+        assertTrue(DamageNumbers.continuesCombo(DamageNumbers.COMBO_TICKS))
+        assertFalse(DamageNumbers.continuesCombo(DamageNumbers.COMBO_TICKS + 1))
+    }
+
+    @Test
+    fun `kill shows a glitching NULL that stays four letters and sometimes is clean`() {
+        val texts = (0 until 200).map { DamageNumbers.glitchText(it, 42) }
+        assertTrue(texts.all { it.length == 4 })
+        assertTrue(DamageNumbers.NULL_TEXT in texts)
+        assertTrue(texts.any { it != DamageNumbers.NULL_TEXT })
+        assertEquals(DamageNumbers.glitchText(5, 42), DamageNumbers.glitchText(5, 42))
+        assertTrue((0 until 200).all { DamageNumbers.glitchSplit(it, 1) in 1f..4f })
+        assertTrue((0 until 200).all { DamageNumbers.glitchJolt(it, 1) in -4f..4f })
+        assertTrue((0 until 200).any { DamageNumbers.glitchJolt(it, 1) != 0f })
     }
 }

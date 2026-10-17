@@ -1,0 +1,19 @@
+package dev.luniiya.mctinytweak.mixin.client.damagenumbers;
+
+import dev.luniiya.mctinytweak.client.damagenumbers.DamageNumberPopups;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
+import net.minecraft.world.damagesource.DamageTypes;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+/** Tells the damage numbers which entity was just hit by `/kill`. TAIL only runs on the client thread. */
+@Mixin(ClientPacketListener.class)
+abstract class ClientPacketListenerKillMixin {
+	@Inject(method = "handleDamageEvent", at = @At("TAIL"))
+	private void mc_tiny_tweak$recordKill(ClientboundDamageEventPacket packet, CallbackInfo ci) {
+		if (packet.sourceType().is(DamageTypes.GENERIC_KILL)) DamageNumberPopups.killed(packet.entityId());
+	}
+}

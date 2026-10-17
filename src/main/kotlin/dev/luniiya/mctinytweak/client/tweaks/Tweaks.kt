@@ -30,6 +30,9 @@ object Tweaks {
     @JvmStatic
     fun damageNumbers() = settings.damageNumbers
 
+    @JvmStatic
+    fun splitHotbar() = settings.splitHotbar
+
     /** Defaults to G, like the fullbright mod the user had before. */
     fun fullbrightKey(category: KeyMapping.Category) =
         KeyMapping("key.${McTinyTweak.MOD_ID}.fullbright", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, category)

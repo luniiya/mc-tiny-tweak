@@ -1,6 +1,7 @@
 package dev.luniiya.mctinytweak.client.tweaks
 
 import dev.luniiya.mctinytweak.client.McTinyTweakClient
+import dev.luniiya.mctinytweak.client.damagenumbers.DamageNumbersScreen
 import dev.luniiya.mctinytweak.client.freecam.Freecam
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.Button
@@ -18,7 +19,7 @@ class TweaksScreen(private val parent: Screen?) : Screen(Component.translatable(
     override fun init() {
         val buttonWidth = 200
         val x = (width - buttonWidth) / 2
-        var y = height / 2 - 56
+        var y = height / 2 - 68
         addRenderableWidget(
             CycleButton.onOffBuilder(Tweaks.settings.showArmor)
                 .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.show_armor.tooltip")) }
@@ -36,11 +37,18 @@ class TweaksScreen(private val parent: Screen?) : Screen(Component.translatable(
         )
         y += 24
         addRenderableWidget(
-            CycleButton.onOffBuilder(Tweaks.settings.damageNumbers)
-                .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers.tooltip")) }
-                .create(x, y, buttonWidth, 20, Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers")) { _, value ->
-                    Tweaks.update { it.copy(damageNumbers = value) }
+            CycleButton.onOffBuilder(Tweaks.settings.splitHotbar)
+                .withTooltip { Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.split_hotbar.tooltip")) }
+                .create(x, y, buttonWidth, 20, Component.translatable("screen.mc_tiny_tweak.tweaks.split_hotbar")) { _, value ->
+                    Tweaks.update { it.copy(splitHotbar = value) }
                 },
+        )
+        y += 24
+        addRenderableWidget(
+            Button.builder(Component.translatable("screen.mc_tiny_tweak.damage_numbers.open")) { minecraft.setScreen(DamageNumbersScreen(this)) }
+                .tooltip(Tooltip.create(Component.translatable("screen.mc_tiny_tweak.tweaks.damage_numbers.tooltip")))
+                .bounds(x, y, buttonWidth, 20)
+                .build(),
         )
         y += 24
         fullbrightButton = addRenderableWidget(
@@ -77,7 +85,7 @@ class TweaksScreen(private val parent: Screen?) : Screen(Component.translatable(
 
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(graphics, mouseX, mouseY, partialTick)
-        graphics.drawCenteredString(font, title, width / 2, height / 2 - 72, 0xFFFFFFFF.toInt())
+        graphics.drawCenteredString(font, title, width / 2, height / 2 - 84, 0xFFFFFFFF.toInt())
     }
 
     override fun onClose() {

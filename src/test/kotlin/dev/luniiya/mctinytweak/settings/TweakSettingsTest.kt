@@ -33,6 +33,14 @@ class TweakSettingsTest {
     }
 
     @Test
+    fun `the hotbar is split by default and can go back to vanilla`() {
+        assertTrue(TweakSettings().splitHotbar)
+        assertTrue(TweakSettings.parse("showArmor=true").splitHotbar)
+        val vanilla = TweakSettings(splitHotbar = false)
+        assertEquals(vanilla, TweakSettings.parse(vanilla.serialize()))
+    }
+
+    @Test
     fun `settings survive saving and loading`() {
         val shown = TweakSettings(showArmor = true)
         assertEquals(shown, TweakSettings.parse(shown.serialize()))
