@@ -37,6 +37,7 @@
     "client.serverstats.ClientPacketListenerTimeMixin",
     "client.visuals.BannerRendererMixin",
     "client.visuals.LightTextureMixin",
+    "client.visuals.PlayerInfoMixin",
     "client.visuals.ScreenEffectRendererMixin",
     "client.visuals.ShieldSpecialRendererMixin"
   ],
